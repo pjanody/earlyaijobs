@@ -299,6 +299,10 @@ async function main() {
   const write = args.includes("--write");
   const all = args.includes("--all");
   const approvedOnly = args.includes("--approved");
+  // --only-new: classify just the jobs that have never been categorised.
+  // Scheduled runs use this — re-labelling 2,493 unchanged rows every cycle
+  // wastes minutes and money. A full re-run stays available for rule changes.
+  const onlyNew = args.includes("--only-new");
   const perCompanyArg = args.includes("--per-company")
     ? Number(args[args.indexOf("--per-company") + 1]) : null;
   const companiesArg = args.includes("--companies")
@@ -347,6 +351,7 @@ async function main() {
       .order("id", { ascending: true })
       .limit(pageSize);
     if (approvedOnly) q = q.in("company_name", APPROVED_COMPANIES);
+    if (onlyNew) q = q.is("category", null);
     const { data: jobs, error } = await q;
     if (error) throw new Error(error.message);
     if (!jobs || !jobs.length) break;

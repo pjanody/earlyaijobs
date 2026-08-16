@@ -46,7 +46,10 @@ async function main() {
   }
 
   await run("upload-jobs.js");
-  await run("classify-simple.js", ["--all", "--approved", "--write"]);
+  // --only-new: categorise just the newly-arrived jobs. Re-classifying every
+  // existing row each cycle would add minutes of billed runtime for no change.
+  // To apply updated rules to the whole corpus, run without --only-new by hand.
+  await run("classify-simple.js", ["--all", "--approved", "--only-new", "--write"]);
 
   const mins = ((Date.now() - started) / 60000).toFixed(1);
   console.log(`\n[pipeline] cycle complete in ${mins} min — exiting cleanly.`);
