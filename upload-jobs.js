@@ -2,15 +2,20 @@
 const { createClient } = require("@supabase/supabase-js");
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
-const greenhouseCompanies = [
-  "anthropic", "stripe", "duolingo", "databricks", "figma",
-  "gitlab", "discord", "reddit", "robinhood", "brex",
-  "gusto", "mongodb", "airtable", "asana", "affirm",
-  "doordashusa", "instacart", "lyft", "pinterest", "dropbox",
-  "elastic", "vercel", "scaleai"
-];
-const leverCompanies = ["plaid", "palantir", "cohere", "mistral"];
-const ashbyCompanies = ["openai", "ramp", "linear", "notion", "elevenlabs", "replit"];
+// APPROVED COMPANIES ONLY.
+// EarlyAIJobs lists jobs at AI companies, so we collect only from those.
+// Adding a company later is one line: put its ATS slug in the right list and
+// the next run collects it — no migration, no backfill, nothing else to change.
+const greenhouseCompanies = ["anthropic", "databricks", "scaleai"];
+const leverCompanies = [];
+const ashbyCompanies = ["openai", "elevenlabs", "replit"];
+
+// Previously tracked, kept for reference should the scope ever widen:
+//   greenhouse: stripe, duolingo, figma, gitlab, discord, reddit, robinhood,
+//               brex, gusto, mongodb, airtable, asana, affirm, doordashusa,
+//               instacart, lyft, pinterest, dropbox, elastic, vercel
+//   lever:      plaid, palantir, cohere (feed gone), mistral (feed empty)
+//   ashby:      ramp, linear, notion
 
 // Cleans a description: un-escapes HTML codes, strips tags, KEEPS THE FULL TEXT.
 //
