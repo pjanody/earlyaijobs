@@ -1,5 +1,5 @@
 import {
-  getJobs, getCategoryCounts, getCompanyCounts,
+  getJobs, getCategoryCounts, getCompanyCounts, getTotalCount,
   CATEGORY_LABELS, COMPANY_LABELS, timeAgo, isFresh,
 } from "../lib/db";
 
@@ -21,13 +21,12 @@ export default async function Home({ searchParams }) {
   const q = sp?.q || "";
   const page = Math.max(1, Number(sp?.page) || 1);
 
-  const [{ jobs, total }, catCounts, coCounts] = await Promise.all([
+  const [{ jobs, total }, catCounts, coCounts, totalAll] = await Promise.all([
     getJobs({ category, company, remote, q, page }),
     getCategoryCounts(),
     getCompanyCounts(),
+    getTotalCount(),
   ]);
-
-  const totalAll = Object.values(coCounts).reduce((a, b) => a + b, 0);
   const freshCount = jobs.filter((j) => isFresh(j.first_published)).length;
   const perPage = 50;
   const lastPage = Math.max(1, Math.ceil(total / perPage));
