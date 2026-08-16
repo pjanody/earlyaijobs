@@ -23,10 +23,12 @@ export default async function JobPage({ params }) {
   const when = timeAgo(job.first_published);
   const fresh = isFresh(job.first_published);
 
+  const isClosed = job.is_open === false;
+
   // JobPosting structured data — this is what makes a listing eligible for
-  // Google's jobs experience. Without it, a job page is just a web page;
-  // with it, search engines understand the title, employer, location and
-  // posting date as structured facts.
+  // Google's jobs experience. Deliberately omitted for closed roles: marking
+  // an expired posting as an active JobPosting is exactly what search engines
+  // penalise. The page stays live and readable; the structured claim does not.
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
@@ -54,10 +56,12 @@ export default async function JobPage({ params }) {
 
   return (
     <div className="wrap detail">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {!isClosed && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      )}
       <a className="back" href="/">← All jobs</a>
       <h1 style={{ marginTop: 14 }}>{job.title}</h1>
       <div className="sub">
@@ -71,9 +75,21 @@ export default async function JobPage({ params }) {
         {job.employment_type && job.employment_type !== "unknown" && <span className="tag">{job.employment_type}</span>}
       </div>
 
-      <a className="apply" href={job.url} target="_blank" rel="noopener noreferrer">
-        Apply on {company}&apos;s site →
-      </a>
+      {isClosed ? (
+        <div className="closed-notice">
+          <strong>This role is no longer accepting applications.</strong>
+          <div>
+            It was removed from {company}&apos;s job feed
+            {job.last_seen_at ? ` around ${new Date(job.last_seen_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""}.
+            Browse <a href="/">current openings</a>
+            {job.category ? <> or see other <a href={`/?category=${job.category}`}>{(CATEGORY_LABELS[job.category] || job.category).toLowerCase()} roles</a></> : null}.
+          </div>
+        </div>
+      ) : (
+        <a className="apply" href={job.url} target="_blank" rel="noopener noreferrer">
+          Apply on {company}&apos;s site →
+        </a>
+      )}
 
       {job.description && <div className="desc">{job.description}</div>}
 

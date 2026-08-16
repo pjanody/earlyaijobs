@@ -172,6 +172,15 @@ form.search button:hover { background: var(--indigo-500); }
 .back { color: var(--indigo-700); font-size: 13.5px; font-weight: 500; }
 .back:hover { text-decoration: underline; }
 
+/* Expired listing: page stays live and useful, but never pretends to be open. */
+.closed-notice {
+  margin: 24px 0; padding: 16px 18px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--border-strong);
+  font-size: 14px; color: #4b5563; line-height: 1.6;
+}
+.closed-notice strong { display: block; color: var(--indigo-900); margin-bottom: 4px; }
+.closed-notice a { color: var(--indigo-700); font-weight: 600; text-decoration: underline; }
+
 /* ---------- footer ---------- */
 footer.site {
   border-top: 1px solid var(--border); padding: 26px 0 44px;
