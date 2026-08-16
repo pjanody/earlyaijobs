@@ -112,6 +112,9 @@ let saved = 0;
 // closed most of its roles — and only one of those is real.
 const MAX_CLOSE_SHARE = 0.40;
 
+// Rows per upsert request. Kept small because descriptions are stored in full.
+const UPSERT_BATCH = 100;
+
 async function openCount(slug) {
   const { count } = await supabase
     .from("jobs").select("id", { count: "exact", head: true })
@@ -156,13 +159,25 @@ async function processCompany(slug, platform, fetcher, report) {
     row.is_open = true;
   }
 
+  // Batches of 100, not 500. Descriptions are stored in full now, so a
+  // 500-row batch of OpenAI postings is several megabytes in one request —
+  // large enough to time out. Smaller batches also mean a transient failure
+  // costs less work.
   let upsertFailed = false;
-  for (let i = 0; i < rows.length; i += 500) {
-    const batch = rows.slice(i, i + 500);
-    const { error } = await supabase.from("jobs")
-      .upsert(batch, { onConflict: "source_platform,source_id" });
-    if (error) { console.log(`${slug}: database error — ${error.message}`); upsertFailed = true; }
-    else saved += batch.length;
+  for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
+    const batch = rows.slice(i, i + UPSERT_BATCH);
+    let written = false;
+
+    for (let attempt = 1; attempt <= 3 && !written; attempt++) {
+      const { error } = await supabase.from("jobs")
+        .upsert(batch, { onConflict: "source_platform,source_id" });
+      if (!error) { written = true; saved += batch.length; break; }
+
+      console.log(`${slug}: write error (batch ${Math.floor(i / UPSERT_BATCH) + 1}, attempt ${attempt}/3) — ${error.message}`);
+      if (attempt < 3) await new Promise(r => setTimeout(r, attempt * 2000));
+    }
+
+    if (!written) upsertFailed = true;
   }
 
   if (upsertFailed) {
