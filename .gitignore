@@ -1,2 +1,8 @@
 .env
+.env.local
 node_modules
+.next
+out
+
+# diagnostic and run output — not part of the app
+*.txt

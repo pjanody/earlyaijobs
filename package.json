@@ -1,16 +1,22 @@
 {
   "name": "earlyaijobs",
   "version": "1.0.0",
-  "description": "",
-  "main": "fetch-jobs.js",
+  "description": "EarlyAIJobs — jobs at AI companies, found early.",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3000}",
+    "ingest": "node --env-file=.env upload-jobs.js",
+    "classify": "node --env-file=.env classify-simple.js --all --approved --write",
+    "pipeline": "node run-pipeline.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Patrick Janody",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@supabase/supabase-js": "^2.112.1"
+    "@supabase/supabase-js": "^2.112.1",
+    "next": "^15.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }
