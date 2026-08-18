@@ -1,4 +1,4 @@
-import { getJob, CATEGORY_LABELS, COMPANY_LABELS, timeAgo, isFresh } from "../../../lib/db";
+import { getJob, CATEGORY_LABELS, COMPANY_LABELS, COMPANY_LOGOS, WIDE_LOGOS, timeAgo, isFresh } from "../../../lib/db";
 import { notFound } from "next/navigation";
 
 export const revalidate = 600;
@@ -63,11 +63,18 @@ export default async function JobPage({ params }) {
         />
       )}
       <a className="back" href="/">← All jobs</a>
-      <h1 style={{ marginTop: 14 }}>{job.title}</h1>
-      <div className="sub">
-        <strong style={{ color: "var(--text)" }}>{company}</strong>
-        {job.location && <><span>·</span><span>{job.location}</span></>}
-        {when && <span className={fresh ? "when fresh" : "when"}>{when}</span>}
+      <div className="detail-head">
+        <span className={`logo lg${WIDE_LOGOS.has(job.company_name) ? " wide" : ""}`} aria-hidden="true">
+          <img src={COMPANY_LOGOS[job.company_name] || "/companies/databricks.svg"} alt="" />
+        </span>
+        <div>
+          <h1>{job.title}</h1>
+          <div className="sub">
+            <strong style={{ color: "var(--text)" }}>{company}</strong>
+            {job.location && <><span>·</span><span>{job.location}</span></>}
+            {when && <span className={fresh ? "when new" : "when"}>{when}</span>}
+          </div>
+        </div>
       </div>
       <div className="meta" style={{ marginTop: 12 }}>
         {job.category && <span className="tag">{CATEGORY_LABELS[job.category] || job.category}</span>}

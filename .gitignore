@@ -6,3 +6,6 @@ out
 
 # diagnostic and run output — not part of the app
 *.txt
+
+# macOS folder metadata
+.DS_Store
