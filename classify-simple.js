@@ -104,6 +104,11 @@ const TITLE_RULES = {
     "sales lead", "deal desk", "revenue operations", "sales", "gtm", "commercial lead",
     // Alliance/channel roles (2 in the 500 sample).
     "alliance rvp", "alliances", "alliance manager", "strategic accounts", "renewals",
+    // Enablement = GTM training function, not education. Longest-match makes
+    // these beat any shorter education phrase.
+    "sales enablement", "gtm enablement", "partner enablement",
+    "field enablement", "revenue enablement", "scale enablement",
+    "enablement lead", "enablement manager",
     // OpenAI/Databricks sales titles found in the production run.
     "account director", "sdr", "specialist seller", "agency partner",
     "partner director", "seller",
@@ -122,6 +127,7 @@ const TITLE_RULES = {
     "customer support", "support engineer", "customer education", "onboarding specialist",
     // Product/user support roles (2 in the 500 sample).
     "product support", "support specialist", "support manager",
+    "customer enablement", "customer education",
   ],
   operations: [
     "program manager", "project manager", "business operations", "strategy and operations",
@@ -162,8 +168,13 @@ const TITLE_RULES = {
     "consolidations", "financial risk", "pricing strategist", "travel & expense",
   ],
   education: [
+    // NOTE: the bare word "enablement" used to live here and dragged every
+    // Sales/GTM/Partner Enablement role into Education (longest-match beat
+    // "sales"). In tech, enablement is a go-to-market function. Education
+    // now requires genuinely educational phrases.
     "curriculum", "instructional designer", "learning and development",
-    "education lead", "training lead", "educator", "teacher", "enablement",
+    "education lead", "training lead", "educator", "teacher",
+    "learning designer", "training program", "academy",
   ],
 };
 

@@ -85,6 +85,16 @@ async function fetchLever(slug) {
   }));
 }
 
+// Ashby's workplaceType enum → our vocabulary. Anything unrecognised or
+// absent stays null so the description pass and "unknown" can do their jobs.
+function normaliseAshbyWorkplace(value) {
+  const v = String(value || "").toLowerCase().replace(/[\s_-]/g, "");
+  if (v === "remote") return "remote";
+  if (v === "hybrid") return "hybrid";
+  if (v === "onsite") return "on-site";
+  return null;
+}
+
 async function fetchAshby(slug) {
   const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}`);
   if (!res.ok) return null;
@@ -99,7 +109,14 @@ async function fetchAshby(slug) {
     url: job.jobUrl,
     first_published: job.publishedAt,
     description: cleanDescription(job.descriptionHtml),
-    workplace_type: job.isRemote === true ? "remote" : null,   // Ashby states it outright
+    // Ashby exposes TWO workplace fields and they disagree constantly:
+    //   isRemote      — a loose boolean; true on 437 OpenAI jobs that Ashby
+    //                   itself labels Hybrid, and on every Replit job whose
+    //                   description says "in-office Monday, Wednesday, Friday"
+    //   workplaceType — the real enum: Remote | Hybrid | OnSite
+    // We previously read isRemote and mislabelled ~513 hybrid jobs as remote.
+    // workplaceType is authoritative; isRemote is ignored.
+    workplace_type: normaliseAshbyWorkplace(job.workplaceType),
     employment_type: job.employmentType ? String(job.employmentType).toLowerCase() : null,
   }));
 }
