@@ -159,17 +159,50 @@ const SOURCE_ALIASES = {
 
 // ---------- workplace detection ----------
 
-// Explicit description phrases only. Generic mentions ("our office",
-// "remote team", "distributed company") deliberately do NOT match.
-const DESC_HYBRID_RE = /\bhybrid (role|position|work(ing)?|model|schedule|policy)\b|\b\d+ days? (a|per) week (in|at)( the)? office\b|\bminimum \d+ days? (on-?site|in( the)? office)\b|\bsplit (your )?time between home and (the )?office\b|\bin (one of )?our offices? at least \d+%? (of the time|per)\b|\bexpect(ed)? (all staff|employees|you) to be in (one of )?(our|the) offices?\b/i;
-const DESC_ONSITE_RE = /\bon-?site (role|position)\b|\bin-?office (role|position)\b|\boffice-based (role|position)\b|\bmust work from (our|the) office\b|\b(five|5) days? (a|per) week (in|at)( the)? office\b/i;
-const DESC_REMOTE_RE = /\bfully remote\b|\b100% remote\b|\bremote-first\b|\bthis (position|role) is remote\b|\bwork remotely\b|\bremote (role|position)\b/i;
+// Explicit description phrases only, each with a RULE ID so every
+// description-derived classification can be traced to the exact pattern and
+// matched sentence that produced it. Generic mentions ("our office",
+// "remote team", "distributed systems") deliberately do NOT match.
+const DESC_RULES = [
+  // --- hybrid ---
+  { id: "hybrid:li-tag",        value: "hybrid",  re: /#LI-hybrid\b/i },
+  { id: "hybrid:explicit",      value: "hybrid",  re: /\bhybrid (role|position|work(ing)?|model|schedule|policy)\b/i },
+  { id: "hybrid:office-days",   value: "hybrid",  re: /\b\d+ days? (a|per) week (in|at)( the)? office\b|\bminimum \d+ days? (on-?site|in( the)? office)\b/i },
+  { id: "hybrid:split-time",    value: "hybrid",  re: /\bsplit (your )?time between home and (the )?office\b/i },
+  { id: "hybrid:percent-policy",value: "hybrid",  re: /\bin (one of )?our offices? at least \d+%? (of the time|per)\b|\bexpect(ed)? (all staff|employees|you) to be in (one of )?(our|the) offices?\b/i },
+  // --- on-site ---
+  { id: "onsite:li-tag",        value: "on-site", re: /#LI-onsite\b/i },
+  { id: "onsite:explicit",      value: "on-site", re: /\bon-?site (role|position)\b|\bin-?office (role|position)\b|\boffice-based (role|position)\b/i },
+  { id: "onsite:must-work",     value: "on-site", re: /\bmust work from (our|the) office\b|\b(five|5) days? (a|per) week (in|at)( the)? office\b/i },
+  // --- remote ---
+  { id: "remote:li-tag",        value: "remote",  re: /#LI-remote\b/i },
+  { id: "remote:fully",         value: "remote",  re: /\bfully remote\b|\b100% remote\b|\bremote-first\b/i },
+  { id: "remote:this-role",     value: "remote",  re: /\bthis (position|role) (is|can be) remote\b/i },
+  { id: "remote:explicit",      value: "remote",  re: /\bremote (role|position)\b|\bwork remotely\b/i },
+];
 
 const norm = (s) => String(s || "").toLowerCase().replace(/[–—]/g, "-").replace(/\s+/g, " ").trim();
 
+/** Run the description rules independently of any other evidence.
+ *  Returns { value, rule, text } or null. Rules are ordered hybrid → on-site
+ *  → remote, because hybrid postings routinely mention "remote" too. */
+function detectWorkplaceFromDescription(description) {
+  const d = String(description || "");
+  if (!d) return null;
+  for (const rule of DESC_RULES) {
+    const m = d.match(rule.re);
+    if (m) {
+      const i = Math.max(0, m.index - 80);
+      const text = d.slice(i, m.index + m[0].length + 80).replace(/\s+/g, " ").trim();
+      return { value: rule.value, rule: rule.id, text };
+    }
+  }
+  return null;
+}
+
 /** Workplace from ATS field, raw location text, then description phrases.
- *  Returns { value, source, conflict } — conflict when explicit description
- *  evidence contradicts ATS evidence (ATS wins; conflict is flagged). */
+ *  Returns the chosen value plus FULL evidence from every source, so a
+ *  conflict can be audited without re-deriving anything. */
 function detectWorkplace(atsWorkplace, rawText, description) {
   const ats = norm(atsWorkplace);
   let atsValue = null;
@@ -182,26 +215,25 @@ function detectWorkplace(atsWorkplace, rawText, description) {
   else if (/\bremote\b/.test(t)) textValue = "remote";
   else if (/\bon-?site\b|\bin-?office\b/.test(t)) textValue = "on-site";
 
-  const d = String(description || "");
-  let descValue = null;
-  if (d) {
-    // hybrid checked first: hybrid postings often also mention "remote";
-    // on-site before remote so "5 days in office" isn't read as remote.
-    if (DESC_HYBRID_RE.test(d)) descValue = "hybrid";
-    else if (DESC_ONSITE_RE.test(d)) descValue = "on-site";
-    else if (DESC_REMOTE_RE.test(d)) descValue = "remote";
-  }
+  const desc = detectWorkplaceFromDescription(description);
+  const evidence = {
+    ats: atsValue,
+    location_text: textValue,
+    description: desc ? desc.value : null,
+    description_rule: desc ? desc.rule : null,
+    description_text: desc ? desc.text : null,
+  };
 
   if (atsValue) {
-    const conflict = Boolean(descValue && descValue !== atsValue);
-    return { value: atsValue, source: "ats", conflict };
+    return { value: atsValue, source: "ats", conflict: Boolean(desc && desc.value !== atsValue), evidence };
   }
   if (textValue) {
-    const conflict = Boolean(descValue && descValue !== textValue);
-    return { value: textValue, source: "location-text", conflict };
+    return { value: textValue, source: "location-text", conflict: Boolean(desc && desc.value !== textValue), evidence };
   }
-  if (descValue) return { value: descValue, source: "description", conflict: false };
-  return { value: "unknown", source: "none", conflict: false };
+  if (desc) {
+    return { value: desc.value, source: "description", conflict: false, evidence, rule: desc.rule };
+  }
+  return { value: "unknown", source: "none", conflict: false, evidence };
 }
 
 // ---------- segment parsing ----------
@@ -423,6 +455,8 @@ function finish({ wp, list, regions, source, qa, raw }) {
   return {
     workplace_type: wp.value,
     workplace_source: wp.source,
+    workplace_rule: wp.rule || null,
+    workplace_evidence: wp.evidence || null,
     location_scope: scope,
     location_relationship: anyGeo || wp.value !== "unknown" ? RELATIONSHIP_DEFAULT[wp.value] : "unknown",
     location_region_codes: regionCodes,
@@ -437,6 +471,7 @@ function finish({ wp, list, regions, source, qa, raw }) {
 
 module.exports = {
   parseLocation, parseSegment, parseStructuredEntry, detectWorkplace,
+  detectWorkplaceFromDescription, DESC_RULES,
   COUNTRIES, COUNTRY_NAMES, COUNTRY_CODES, CITIES, REGION_TOKENS,
   REGION_MEMBERS, SOURCE_ALIASES, US_STATES, CA_PROVINCES,
 };

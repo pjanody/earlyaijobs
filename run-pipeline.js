@@ -5,8 +5,9 @@
 // app is billed only for the ~2-5 minutes it actually runs rather than for an
 // always-on process.
 //
-//   1. upload-jobs.js       collect every feed, upsert, close vanished jobs
-//   2. classify-simple.js   assign categories to the approved companies
+//   1. upload-jobs.js          collect every feed, upsert, close vanished jobs
+//   2. classify-simple.js      assign categories to the approved companies
+//   3. normalize-new-jobs.js   country / confirmed-remote / language for new rows
 //
 // Environment (set as ENCRYPTED variables on the job component):
 //   SUPABASE_URL
@@ -50,6 +51,10 @@ async function main() {
   // existing row each cycle would add minutes of billed runtime for no change.
   // To apply updated rules to the whole corpus, run without --only-new by hand.
   await run("classify-simple.js", ["--all", "--approved", "--only-new", "--write"]);
+  // v1 normalization: country codes, confirmed-remote, posting language.
+  // Only touches rows where posting_language IS NULL (i.e. new this cycle) —
+  // same deterministic module the backfill used, no AI, no drift.
+  await run("normalize-new-jobs.js");
 
   const mins = ((Date.now() - started) / 60000).toFixed(1);
   console.log(`\n[pipeline] cycle complete in ${mins} min — exiting cleanly.`);

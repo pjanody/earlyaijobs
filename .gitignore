@@ -6,6 +6,7 @@ out
 
 # diagnostic and run output — not part of the app
 *.txt
+backfill-v1-snapshot-*.json
 
 # macOS folder metadata
 .DS_Store

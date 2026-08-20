@@ -107,13 +107,21 @@ function buildAuditSample(results) {
   lines.push("=".repeat(90));
 
   for (const [name, s] of Object.entries(strata)) {
-    const pool = results.filter((r) => s.match(r) && !used.has(r.job.id));
+    // A job belongs to exactly one stratum: the first that claims it. So a
+    // stratum's pool is only the jobs no EARLIER stratum already took. Report
+    // both numbers — reporting only the pool made the conflict stratum look
+    // smaller than the corpus-wide conflict count in parser-report.txt, which
+    // is what Codex flagged. Same run, same corpus; the gap is claimed jobs.
+    const total = results.filter((r) => s.match(r));
+    const pool = total.filter((r) => !used.has(r.job.id));
+    const claimed = total.length - pool.length;
     // deterministic spread: take evenly across the pool rather than the head
     const step = Math.max(1, Math.floor(pool.length / Math.min(s.want, pool.length || 1)));
     const picked = [];
     for (let i = 0; i < pool.length && picked.length < s.want; i += step) picked.push(pool[i]);
 
-    lines.push(`\n### ${name} — ${picked.length} sampled of ${pool.length} matching`);
+    lines.push(`\n### ${name} — ${picked.length} sampled of ${pool.length} unclaimed`
+      + ` (${total.length} match corpus-wide; ${claimed} already sampled under an earlier stratum)`);
     for (const r of picked) {
       used.add(r.job.id);
       const L = r.loc;
@@ -125,6 +133,15 @@ function buildAuditSample(results) {
       lines.push(`                   countries=[${L.location_countries}] states=[${L.location_states}] cities=[${L.location_cities}] regions=[${L.location_region_codes}]`);
       lines.push(`                   list=${JSON.stringify(L.location_list)} source=${L.location_source}${L.location_qa_flags.length ? " qa=" + L.location_qa_flags.join(",") : ""}`);
       lines.push(`  LANGUAGE       : ${r.lang.language} (${r.lang.method}, ${r.lang.basis})`);
+      // Show the reasoning whenever sources disagree, so a conflict row can be
+      // judged without re-deriving anything by hand.
+      if (L.location_qa_flags.includes("workplace-source-conflict")) {
+        const e = L.workplace_evidence || {};
+        lines.push(`  CONFLICT       : ats=${e.ats || "—"} | location-text=${e.location_text || "—"} | description=${e.description || "—"}`);
+        lines.push(`    desc rule    : ${e.description_rule || "—"}`);
+        lines.push(`    matched text : …${String(e.description_text || "").replace(/\s+/g, " ").slice(0, 180)}…`);
+        lines.push(`    resolved to  : ${L.workplace_type} (precedence: ${L.workplace_source})`);
+      }
       lines.push(`  VERDICT        : ____________`);
     }
   }

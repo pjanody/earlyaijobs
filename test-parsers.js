@@ -7,7 +7,7 @@
 //   - USCA is a documented source alias; GBIE is not
 //   - description workplace phrases are explicit-only; conflicts are flagged
 
-const { parseLocation } = require("./location-parser");
+const { parseLocation, detectWorkplaceFromDescription } = require("./location-parser");
 const { detectPostingLanguage } = require("./language-parser");
 
 let pass = 0, fail = 0;
@@ -267,6 +267,77 @@ check("Tech-jargon-heavy English still detected",
 check("German description → de",
   detectPostingLanguage({ title: "Account Executive", description: "Wir suchen eine erfahrene Person für den Vertrieb. Sie werden mit unserem Team arbeiten und für die Kunden in der Region verantwortlich sein. Die Rolle ist nicht remote und Sie arbeiten bei uns im Büro in München oder Berlin." }),
   { language: "de" });
+
+// ---------------------------------------------------------------------------
+// Description workplace rules — added after Codex review. Each rule is narrow
+// and carries an ID so a label can always be traced back to the phrase that
+// produced it. The negative cases matter most: they are the sentences a broad
+// keyword regex would have mislabelled.
+// ---------------------------------------------------------------------------
+console.log("\n=== DESCRIPTION WORKPLACE RULES ===");
+
+const wp = (text) => {
+  const r = detectWorkplaceFromDescription(text);
+  return { value: r ? r.value : null, rule: r ? r.rule : null };
+};
+
+check("#LI-hybrid tag → hybrid",
+  wp("Great benefits. #LI-Hybrid"), { value: "hybrid", rule: "hybrid:li-tag" });
+
+check("#LI-Remote tag → remote",
+  wp("Apply today. #LI-Remote"), { value: "remote", rule: "remote:li-tag" });
+
+check("#LI-Onsite tag → on-site",
+  wp("Join us. #LI-Onsite"), { value: "on-site", rule: "onsite:li-tag" });
+
+check("'This position can be remote' → remote",
+  wp("This position can be remote."), { value: "remote", rule: "remote:this-role" });
+
+check("'3 days a week in the office' → hybrid",
+  wp("We expect 3 days a week in the office."), { value: "hybrid" });
+
+// Negative cases — a broad /remote|office|onsite/ regex fails every one of these.
+check("Describing the product, not the job → no opinion",
+  wp("You will build tools for remote teams around the world."), { value: null });
+
+check("Company history mentioning an office → no opinion",
+  wp("We grew from a tiny corner office in Berkeley into a global company."), { value: null });
+
+check("Travelling to CUSTOMER sites is not the job's own workplace",
+  wp("Willingness to be onsite with customers 4 days per week."), { value: null });
+
+check("Generic 'hybrid cloud' tech term is not a work arrangement",
+  wp("Experience with hybrid cloud architecture is required."), { value: null });
+
+check("Silent posting → no opinion",
+  wp("We build distributed data systems at scale."), { value: null });
+
+// Precedence: the ATS field is authoritative; the description is corroboration
+// only, and a disagreement must be recorded rather than silently resolved.
+console.log("\n=== WORKPLACE PRECEDENCE + EVIDENCE ===");
+
+const conflictRow = parseLocation({
+  location: "San Francisco, CA",
+  workplace_type: "on-site",
+  description: "This position can be remote.",
+});
+
+check("ATS wins over description, conflict is flagged",
+  { workplace_type: conflictRow.workplace_type,
+    workplace_source: conflictRow.workplace_source,
+    flagged: conflictRow.location_qa_flags.includes("workplace-source-conflict") },
+  { workplace_type: "on-site", workplace_source: "ats", flagged: true });
+
+check("Conflict evidence records BOTH sides and the rule that fired",
+  { ats: conflictRow.workplace_evidence.ats,
+    desc: conflictRow.workplace_evidence.description,
+    rule: conflictRow.workplace_evidence.description_rule },
+  { ats: "on-site", desc: "remote", rule: "remote:this-role" });
+
+check("Agreement between ATS and description is NOT flagged as conflict",
+  { flagged: parseLocation({ location: "Remote", workplace_type: "remote", description: "This role is fully remote." })
+      .location_qa_flags.includes("workplace-source-conflict") },
+  { flagged: false });
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

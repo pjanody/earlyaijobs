@@ -1,7 +1,7 @@
 import {
-  getJobs, getCategoryCounts, getCompanyCounts, getTotalCount, getFreshCount,
-  getLastUpdated, CATEGORY_LABELS, COMPANY_LABELS, COMPANY_LOGOS, WIDE_LOGOS,
-  timeAgo, freshness,
+  getJobs, getCategoryCounts, getCompanyCounts, getCountryCounts, getTotalCount,
+  getFreshCount, getRemoteCount, getLastUpdated, CATEGORY_LABELS, COMPANY_LABELS,
+  COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, timeAgo, freshness,
 } from "../lib/db";
 
 export const revalidate = 300;
@@ -19,16 +19,19 @@ export default async function Home({ searchParams }) {
   const category = sp?.category || "";
   const company = sp?.company || "";
   const remote = sp?.remote || "";
+  const country = sp?.country || "";
   const q = sp?.q || "";
   const page = Math.max(1, Number(sp?.page) || 1);
 
-  const [{ jobs, total }, catCounts, coCounts, totalAll, freshCount, lastUpdated] =
+  const [{ jobs, total }, catCounts, coCounts, countryCounts, totalAll, freshCount, remoteCount, lastUpdated] =
     await Promise.all([
-      getJobs({ category, company, remote, q, page }),
+      getJobs({ category, company, remote, country, q, page }),
       getCategoryCounts(),
       getCompanyCounts(),
+      getCountryCounts(),
       getTotalCount(),
       getFreshCount(),
+      getRemoteCount(),
       getLastUpdated(),
     ]);
 
@@ -36,6 +39,12 @@ export default async function Home({ searchParams }) {
   const lastPage = Math.max(1, Math.ceil(total / perPage));
   const sortedCats = Object.entries(catCounts).sort((a, b) => b[1] - a[1]);
   const sortedCos = Object.entries(coCounts).sort((a, b) => b[1] - a[1]);
+  // Countries by job count; region-wide entries appended at the end. Only
+  // places that actually have jobs ever appear.
+  const sortedCountries = Object.entries(countryCounts.countries).sort((a, b) => b[1] - a[1]);
+  const sortedRegions = Object.entries(countryCounts.regions)
+    .filter(([code]) => REGION_LABELS[code])
+    .sort((a, b) => b[1] - a[1]);
 
   return (
     <>
@@ -75,28 +84,28 @@ export default async function Home({ searchParams }) {
       <div className="wrap layout">
         <aside className="filters">
           <h3>Company</h3>
-          <a className={!company ? "on" : ""} href={qs({ category, q, remote })}>
+          <a className={!company ? "on" : ""} href={qs({ category, q, remote, country })}>
             All companies <span className="n">{totalAll}</span>
           </a>
           {sortedCos.map(([slug, n]) => (
             <a
               key={slug}
               className={company === slug ? "on" : ""}
-              href={qs({ company: company === slug ? "" : slug, category, q, remote })}
+              href={qs({ company: company === slug ? "" : slug, category, q, remote, country })}
             >
               {COMPANY_LABELS[slug] || slug} <span className="n">{n}</span>
             </a>
           ))}
 
           <h3>Category</h3>
-          <a className={!category ? "on" : ""} href={qs({ company, q, remote })}>
+          <a className={!category ? "on" : ""} href={qs({ company, q, remote, country })}>
             All categories <span className="n">{totalAll}</span>
           </a>
           {sortedCats.map(([slug, n]) => (
             <a
               key={slug}
               className={category === slug ? "on" : ""}
-              href={qs({ category: category === slug ? "" : slug, company, q, remote })}
+              href={qs({ category: category === slug ? "" : slug, company, q, remote, country })}
             >
               {CATEGORY_LABELS[slug] || slug} <span className="n">{n}</span>
             </a>
@@ -105,10 +114,33 @@ export default async function Home({ searchParams }) {
           <h3>Workplace</h3>
           <a
             className={remote === "1" ? "on" : ""}
-            href={qs({ remote: remote === "1" ? "" : "1", category, company, q })}
+            href={qs({ remote: remote === "1" ? "" : "1", category, company, q, country })}
           >
-            Remote only
+            Remote only <span className="n">{remoteCount}</span>
           </a>
+
+          <h3>Location</h3>
+          <a className={!country ? "on" : ""} href={qs({ category, company, q, remote })}>
+            All locations <span className="n">{totalAll}</span>
+          </a>
+          {sortedCountries.map(([code, n]) => (
+            <a
+              key={code}
+              className={country === code ? "on" : ""}
+              href={qs({ country: country === code ? "" : code, category, company, q, remote })}
+            >
+              {COUNTRY_LABELS[code] || code} <span className="n">{n}</span>
+            </a>
+          ))}
+          {sortedRegions.map(([code, n]) => (
+            <a
+              key={code}
+              className={country === code ? "on" : ""}
+              href={qs({ country: country === code ? "" : code, category, company, q, remote })}
+            >
+              {REGION_LABELS[code]} <span className="n">{n}</span>
+            </a>
+          ))}
         </aside>
 
         <main>
@@ -116,6 +148,7 @@ export default async function Home({ searchParams }) {
             {category && <input type="hidden" name="category" value={category} />}
             {company && <input type="hidden" name="company" value={company} />}
             {remote && <input type="hidden" name="remote" value={remote} />}
+            {country && <input type="hidden" name="country" value={country} />}
             <input
               type="search"
               name="q"
@@ -131,6 +164,8 @@ export default async function Home({ searchParams }) {
             {q && <> matching “{q}”</>}
             {company && <> at {COMPANY_LABELS[company] || company}</>}
             {category && <> in {CATEGORY_LABELS[category] || category}</>}
+            {country && <> · {REGION_LABELS[country] || COUNTRY_LABELS[country] || country}</>}
+            {remote === "1" && <> · remote</>}
           </div>
 
           {jobs.length === 0 && (
@@ -171,7 +206,7 @@ export default async function Home({ searchParams }) {
                         {CATEGORY_LABELS[job.category] || job.category}
                       </span>
                     )}
-                    {job.workplace_type === "remote" && <span className="tag">Remote</span>}
+                    {job.is_remote === true && <span className="tag">Remote</span>}
                   </div>
                 </div>
                 {when && (
@@ -186,7 +221,7 @@ export default async function Home({ searchParams }) {
           {lastPage > 1 && (
             <div className="pager">
               {page > 1 ? (
-                <a href={qs({ category, company, q, remote, page: page - 1 })}>← Previous</a>
+                <a href={qs({ category, company, q, remote, country, page: page - 1 })}>← Previous</a>
               ) : (
                 <span className="disabled">← Previous</span>
               )}
@@ -194,7 +229,7 @@ export default async function Home({ searchParams }) {
                 Page {page} of {lastPage}
               </span>
               {page < lastPage ? (
-                <a href={qs({ category, company, q, remote, page: page + 1 })}>Next →</a>
+                <a href={qs({ category, company, q, remote, country, page: page + 1 })}>Next →</a>
               ) : (
                 <span className="disabled">Next →</span>
               )}
