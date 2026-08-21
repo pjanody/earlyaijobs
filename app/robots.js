@@ -4,7 +4,7 @@
 export default function robots() {
   return {
     rules: [{ userAgent: "*", allow: "/" }],
-    sitemap: "https://earlyaijobs.com/sitemap.xml",
-    host: "https://earlyaijobs.com",
+    sitemap: "https://www.earlyaijobs.com/sitemap.xml",
+    host: "https://www.earlyaijobs.com",
   };
 }

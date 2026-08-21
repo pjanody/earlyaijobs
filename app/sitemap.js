@@ -24,7 +24,9 @@ const supabase = hasCredentials
     )
   : null;
 
-const BASE = "https://earlyaijobs.com";
+// www is the canonical host — the apex domain 301-redirects to it, so every
+// URL we hand to crawlers must match or Google logs a redirect per entry.
+const BASE = "https://www.earlyaijobs.com";
 
 export const revalidate = 3600; // regenerate hourly
 
@@ -42,14 +44,28 @@ export default async function sitemap() {
       priority: 0.8,
     });
   }
+  // Dedicated company pages — the URLs that rank for "anthropic jobs",
+  // "openai careers" etc. Higher priority than filter views on purpose.
   for (const slug of APPROVED_COMPANIES) {
+    entries.push({
+      url: `${BASE}/company/${slug}`,
+      changeFrequency: "hourly",
+      priority: 0.9,
+    });
     entries.push({
       url: `${BASE}/?company=${slug}`,
       changeFrequency: "daily",
-      priority: 0.8,
+      priority: 0.7,
     });
   }
   entries.push({ url: `${BASE}/?remote=1`, changeFrequency: "daily", priority: 0.8 });
+
+  // Country filter views — the pages that rank for "ai jobs canada",
+  // "remote ai jobs poland" and similar. Major markets only; the rest are
+  // reachable from the homepage sidebar.
+  for (const code of ["US", "GB", "CA", "IN", "DE", "FR", "JP", "SG", "AU", "NL", "PL", "IE", "ES", "IT", "BR", "MX", "KR", "SE"]) {
+    entries.push({ url: `${BASE}/?country=${code}`, changeFrequency: "daily", priority: 0.7 });
+  }
 
   // Every individual job page. Failure here degrades the sitemap; it must
   // never fail the build.
@@ -59,25 +75,34 @@ export default async function sitemap() {
   }
 
   try {
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("id, last_seen_at")
-      .eq("is_open", true)
-      .in("company_name", APPROVED_COMPANIES)
-      .limit(10000);
+    // Supabase caps every response at 1,000 rows regardless of .limit() —
+    // a single query here silently dropped ~60% of job URLs. Paginate.
+    // Confirmed non-English postings are excluded: they never render on the
+    // site, so advertising them to crawlers would be inviting a soft-404.
+    const PAGE = 1000;
+    for (let from = 0; from < 50000; from += PAGE) {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("id, last_seen_at")
+        .eq("is_open", true)
+        .in("company_name", APPROVED_COMPANIES)
+        .or("posting_language.eq.en,posting_language.is.null,posting_language.eq.und")
+        .order("id", { ascending: true })
+        .range(from, from + PAGE - 1);
 
-    if (error) throw new Error(error.message);
-
-    for (const job of data || []) {
-      entries.push({
-        url: `${BASE}/job/${job.id}`,
-        lastModified: job.last_seen_at ? new Date(job.last_seen_at) : undefined,
-        changeFrequency: "daily",
-        priority: 0.6,
-      });
+      if (error) throw new Error(error.message);
+      for (const job of data || []) {
+        entries.push({
+          url: `${BASE}/job/${job.id}`,
+          lastModified: job.last_seen_at ? new Date(job.last_seen_at) : undefined,
+          changeFrequency: "daily",
+          priority: 0.6,
+        });
+      }
+      if (!data || data.length < PAGE) break;
     }
   } catch (err) {
-    console.warn(`[sitemap] could not load job URLs (${err.message}) — emitting static routes only`);
+    console.warn(`[sitemap] could not load job URLs (${err.message}) — emitting partial sitemap`);
   }
 
   return entries;

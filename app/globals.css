@@ -266,9 +266,17 @@ form.search button:hover { background: var(--accent-hover); }
 }
 .apply:hover { background: var(--accent-hover); }
 .desc {
-  margin-top: 26px; white-space: pre-wrap; font-size: 14.5px;
+  margin-top: 26px; font-size: 14.5px;
   line-height: 1.7; color: var(--text-secondary);
 }
+.desc p { margin: 0 0 12px; }
+.desc .desc-h {
+  margin: 26px 0 10px; font-weight: 650; font-size: 15px;
+  color: var(--text); letter-spacing: 0.01em;
+}
+.desc .desc-h:first-child { margin-top: 0; }
+.desc ul { margin: 0 0 12px; padding-left: 22px; }
+.desc li { margin: 0 0 6px; }
 .back { color: var(--sage); font-size: 13.5px; font-weight: 500; }
 .back:hover { text-decoration: underline; }
 

@@ -1,6 +1,62 @@
 import { getJob, CATEGORY_LABELS, COMPANY_LABELS, COMPANY_LOGOS, WIDE_LOGOS, timeAgo, isFresh } from "../../../lib/db";
 import { notFound } from "next/navigation";
 
+// ---------------------------------------------------------------------------
+// Description rendering. Descriptions are stored as plain text with newlines
+// (HTML structure was flattened at ingestion), so headings like "The impact
+// you will have:" arrive as ordinary lines and the whole posting reads as an
+// undifferentiated wall. We rebuild light structure deterministically:
+//   heading  = a short line ending in ":", or a known ATS section title
+//   bullet   = a line starting with a list marker
+//   paragraph = everything else
+// No parsing of meaning, no guessing — a line either matches or it doesn't.
+// ---------------------------------------------------------------------------
+
+// Common section titles that appear WITHOUT a trailing colon.
+const KNOWN_HEADINGS = new Set([
+  "about the role", "about the team", "about the company", "about us",
+  "about you", "about this role", "the role", "the team", "requirements",
+  "responsibilities", "qualifications", "benefits", "compensation",
+  "who you are", "who we are", "what you'll do", "what you will do",
+  "what you'll work on", "what you bring", "nice to have", "bonus points",
+  "minimum qualifications", "preferred qualifications", "why join us",
+  "our culture", "perks", "perks & benefits", "interview process",
+  "equal opportunity", "what we offer", "your impact", "in this role",
+]);
+
+function lineKind(line) {
+  if (/^[•·◦▪-]\s+/.test(line)) return "bullet";
+  const bare = line.replace(/:$/, "").replace(/[’]/g, "'").toLowerCase();
+  if (line.length <= 70 && line.endsWith(":") && !/[.!?] /.test(line)) return "heading";
+  if (line.length <= 45 && KNOWN_HEADINGS.has(bare)) return "heading";
+  return "text";
+}
+
+function Description({ text }) {
+  const blocks = [];
+  let bullets = [];
+  const flushBullets = (key) => {
+    if (!bullets.length) return;
+    blocks.push(<ul key={`ul-${key}`}>{bullets}</ul>);
+    bullets = [];
+  };
+
+  String(text).split("\n").forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) return;
+    const kind = lineKind(line);
+    if (kind === "bullet") {
+      bullets.push(<li key={i}>{line.replace(/^[•·◦▪-]\s+/, "")}</li>);
+      return;
+    }
+    flushBullets(i);
+    if (kind === "heading") blocks.push(<p className="desc-h" key={i}>{line}</p>);
+    else blocks.push(<p key={i}>{line}</p>);
+  });
+  flushBullets("end");
+  return <div className="desc">{blocks}</div>;
+}
+
 export const revalidate = 600;
 
 export async function generateMetadata({ params }) {
@@ -11,6 +67,7 @@ export async function generateMetadata({ params }) {
   return {
     title: `${job.title} at ${company} — EarlyAIJobs`,
     description: `${job.title} at ${company}${job.location ? ` · ${job.location}` : ""}. Apply directly on the company's careers page.`,
+    alternates: { canonical: `https://www.earlyaijobs.com/job/${job.id}` },
   };
 }
 
@@ -49,9 +106,11 @@ export default async function JobPage({ params }) {
           address: { "@type": "PostalAddress", addressLocality: job.location },
         }
       : undefined,
-    jobLocationType: job.workplace_type === "remote" ? "TELECOMMUTE" : undefined,
+    // Only positively-confirmed remote earns the structured-data claim —
+    // same evidence standard as the site's Remote filter.
+    jobLocationType: job.is_remote === true ? "TELECOMMUTE" : undefined,
     directApply: false,
-    url: `https://earlyaijobs.com/job/${job.id}`,
+    url: `https://www.earlyaijobs.com/job/${job.id}`,
   };
 
   return (
@@ -70,7 +129,9 @@ export default async function JobPage({ params }) {
         <div>
           <h1>{job.title}</h1>
           <div className="sub">
-            <strong style={{ color: "var(--text)" }}>{company}</strong>
+            {/* Links to the company page — the internal links crawlers follow
+                are what make /company/<slug> rank, not the sitemap alone. */}
+            <a href={`/company/${job.company_name}`} style={{ color: "var(--text)", fontWeight: 600 }}>{company}</a>
             {job.location && <><span>·</span><span>{job.location}</span></>}
             {when && <span className={fresh ? "when new" : "when"}>{when}</span>}
           </div>
@@ -78,7 +139,10 @@ export default async function JobPage({ params }) {
       </div>
       <div className="meta" style={{ marginTop: 12 }}>
         {job.category && <span className="tag">{CATEGORY_LABELS[job.category] || job.category}</span>}
-        {job.workplace_type && job.workplace_type !== "unknown" && <span className="tag">{job.workplace_type}</span>}
+        {/* Only the verified Remote badge — the raw ATS workplace field is
+            wrong too often to display (Ashby marks work-from-anywhere jobs
+            "on-site"). Unknown is better than wrong. */}
+        {job.is_remote === true && <span className="tag">remote</span>}
         {job.employment_type && job.employment_type !== "unknown" && <span className="tag">{job.employment_type}</span>}
       </div>
 
@@ -98,7 +162,7 @@ export default async function JobPage({ params }) {
         </a>
       )}
 
-      {job.description && <div className="desc">{job.description}</div>}
+      {job.description && <Description text={job.description} />}
 
       <p style={{ marginTop: 34, color: "var(--muted)", fontSize: 13 }}>
         Listing collected from {company}&apos;s public job feed. Applications are

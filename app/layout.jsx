@@ -2,7 +2,9 @@ import "./globals.css";
 import ThemeToggle from "./theme-toggle";
 
 export const metadata = {
-  metadataBase: new URL("https://earlyaijobs.com"),
+  // www is the canonical host (the apex redirects to it); every absolute URL
+  // in metadata must agree or search engines see a split identity.
+  metadataBase: new URL("https://www.earlyaijobs.com"),
   title: "EarlyAIJobs — fresh jobs from leading AI companies",
   description:
     "Every role at leading AI companies — engineering, research, sales, finance, operations and more — sourced directly from company career feeds and updated hourly.",
@@ -10,7 +12,7 @@ export const metadata = {
     title: "EarlyAIJobs — fresh jobs from leading AI companies",
     description:
       "Every role at leading AI companies, sourced directly from company career feeds and updated hourly.",
-    url: "https://earlyaijobs.com",
+    url: "https://www.earlyaijobs.com",
     siteName: "EarlyAIJobs",
     type: "website",
   },
@@ -69,6 +71,12 @@ export default function RootLayout({ children }) {
             <nav className="footer-nav">
               <a href="/">Jobs</a>
               <a href="/about">About</a>
+              <a href="/company/openai">OpenAI jobs</a>
+              <a href="/company/anthropic">Anthropic jobs</a>
+              <a href="/company/databricks">Databricks jobs</a>
+              <a href="/company/scaleai">Scale AI jobs</a>
+              <a href="/company/elevenlabs">ElevenLabs jobs</a>
+              <a href="/company/replit">Replit jobs</a>
             </nav>
           </div>
           <div className="wrap copyright">© {new Date().getFullYear()} EarlyAIJobs</div>
