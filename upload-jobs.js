@@ -1,5 +1,6 @@
 // upload-jobs.js — Day 3 v3: collectors now bring home descriptions + ATS facts.
 const { createClient } = require("@supabase/supabase-js");
+const { sanitizeDescriptionHtml } = require("./sanitize-description");
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 // APPROVED COMPANIES ONLY.
@@ -59,6 +60,10 @@ async function fetchGreenhouse(slug) {
     url: job.absolute_url,
     first_published: job.first_published,
     description: cleanDescription(job.content),
+    // Phase B: the employer's own structure (headings, lists, links, bold),
+    // sanitized through our allowlist. The plain-text field above remains the
+    // classification input and the fallback — both always stored.
+    description_html: sanitizeDescriptionHtml(job.content),
     workplace_type: null,       // Greenhouse doesn't say — the classifier will infer
     employment_type: null,
   }));
@@ -79,6 +84,17 @@ async function fetchLever(slug) {
     description: job.descriptionPlain
       ? job.descriptionPlain.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim()
       : null,
+    // Lever splits the posting into description + list sections + closing
+    // text. Reassemble in source order, then sanitize like everything else.
+    description_html: sanitizeDescriptionHtml(
+      [
+        job.description || "",
+        ...(Array.isArray(job.lists)
+          ? job.lists.map((l) => `<h3>${l.text || ""}</h3><ul>${l.content || ""}</ul>`)
+          : []),
+        job.additional || "",
+      ].join("")
+    ),
     // ATS facts, free of charge — no AI guessing needed:
     workplace_type: job.workplaceType || null,
     employment_type: job.categories?.commitment?.toLowerCase() || null,
@@ -109,6 +125,7 @@ async function fetchAshby(slug) {
     url: job.jobUrl,
     first_published: job.publishedAt,
     description: cleanDescription(job.descriptionHtml),
+    description_html: sanitizeDescriptionHtml(job.descriptionHtml),
     // Ashby exposes TWO workplace fields and they disagree constantly:
     //   isRemote      — a loose boolean; true on 437 OpenAI jobs that Ashby
     //                   itself labels Hybrid, and on every Replit job whose
