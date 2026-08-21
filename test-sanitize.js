@@ -103,6 +103,24 @@ check("event handlers on allowed tags are discarded", () => {
   eq(out, "<p>Hello</p>", "output");
 });
 
+check("dropped div boundaries become breaks — salary never fuses (GPT catch)", () => {
+  const out = sanitizeDescriptionHtml("<div>Annual Salary:</div><div>$380,000—$450,000 USD</div>");
+  if (out.includes("Salary:$380")) throw new Error(`texts fused: ${out}`);
+  if (!/Annual Salary:<br>/.test(out.replace(/<br><br>/, "<br>"))) throw new Error(`no boundary: ${out}`);
+  eq(textOf(out), "Annual Salary: $380,000—$450,000 USD", "text");
+});
+
+check("dropped inline spans leave no gap inside words", () => {
+  const out = sanitizeDescriptionHtml("<p>com<span>p</span>ensation is fair</p>");
+  eq(textOf(out).replace(/ /g, "").includes("compensation"), true, "word integrity");
+  if (out.includes("<br>")) throw new Error("inline drop created a break");
+});
+
+check("table cells separate instead of fusing", () => {
+  const out = sanitizeDescriptionHtml("<table><tr><td>Base</td><td>$100k</td></tr></table>");
+  if (out.includes("Base$100k")) throw new Error(`cells fused: ${out}`);
+});
+
 check("long realistic posting keeps every word", () => {
   const input = `<h2>About Anthropic</h2><p>Anthropic&#39;s mission is to create reliable systems.</p>
 <h2>About the role</h2><p>You will own the <em>full</em> sales cycle for mid-market accounts across the region.</p>

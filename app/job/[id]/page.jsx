@@ -1,6 +1,6 @@
 import {
   getJob, getSimilarJobs, CATEGORY_LABELS, COMPANY_LABELS, COMPANY_LOGOS,
-  WIDE_LOGOS, timeAgo, isFresh,
+  WIDE_LOGOS, displayLocation, timeAgo, isFresh,
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 
@@ -132,7 +132,7 @@ export default async function JobPage({ params }) {
 
           <div className="meta" style={{ marginTop: 12 }}>
             {job.category && <span className="tag">{CATEGORY_LABELS[job.category] || job.category}</span>}
-            {job.is_remote === true && <span className="tag">remote</span>}
+            {job.is_remote === true && <span className="tag tag-remote">Remote</span>}
             {job.employment_type && job.employment_type !== "unknown" && <span className="tag">{job.employment_type}</span>}
           </div>
 
@@ -193,7 +193,7 @@ export default async function JobPage({ params }) {
                   <span className="similar-title">{s.title}</span>
                   <span className="similar-meta">
                     {COMPANY_LABELS[s.company_name] || s.company_name}
-                    {s.location ? ` · ${String(s.location).slice(0, 34)}` : ""}
+                    {s.location ? ` · ${String(displayLocation(s.location, 1)).slice(0, 38)}` : ""}
                     {timeAgo(s.first_published) ? ` · ${timeAgo(s.first_published)}` : ""}
                   </span>
                 </a>

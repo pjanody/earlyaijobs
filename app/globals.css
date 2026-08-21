@@ -200,6 +200,15 @@ header.site {
   text-decoration: underline; padding: 0 !important; background: none !important;
 }
 
+/* Verified-remote tag: sage so it reads as a positive signal at a glance,
+   distinct from the neutral category tags beside it. */
+.tag-remote {
+  color: var(--sage) !important;
+  border-color: var(--sage) !important;
+  background: color-mix(in srgb, var(--sage) 12%, transparent) !important;
+  font-weight: 600;
+}
+
 /* ---------- active filter chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .chip {

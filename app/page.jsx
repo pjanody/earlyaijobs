@@ -2,7 +2,7 @@ import {
   getJobs, getCategoryCounts, getCompanyCounts, getCountryCounts, getTotalCount,
   getFreshCount, getRemoteCount, getLastUpdated, CATEGORY_LABELS, COMPANY_LABELS,
   COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, POSTED_WINDOWS,
-  timeAgo, freshness,
+  displayLocation, timeAgo, freshness,
 } from "../lib/db";
 
 // Auto-submit the filter form when a control changes (falls back to the Apply
@@ -254,7 +254,7 @@ export default async function Home({ searchParams }) {
                     {job.location && (
                       <>
                         <span className="dot">·</span>
-                        <span>{job.location}</span>
+                        <span>{displayLocation(job.location)}</span>
                       </>
                     )}
                     {job.category && (
@@ -262,7 +262,7 @@ export default async function Home({ searchParams }) {
                         {CATEGORY_LABELS[job.category] || job.category}
                       </span>
                     )}
-                    {job.is_remote === true && <span className="tag">Remote</span>}
+                    {job.is_remote === true && <span className="tag tag-remote">Remote</span>}
                   </div>
                 </div>
                 {when && (
@@ -277,6 +277,11 @@ export default async function Home({ searchParams }) {
           {lastPage > 1 && (
             <div className="pager">
               {page > 1 ? (
+                <a href={qs({ category, company, q, remote, country, posted })} title="First page">« First</a>
+              ) : (
+                <span className="disabled">« First</span>
+              )}
+              {page > 1 ? (
                 <a href={qs({ category, company, q, remote, country, posted, page: page - 1 })}>← Previous</a>
               ) : (
                 <span className="disabled">← Previous</span>
@@ -288,6 +293,11 @@ export default async function Home({ searchParams }) {
                 <a href={qs({ category, company, q, remote, country, posted, page: page + 1 })}>Next →</a>
               ) : (
                 <span className="disabled">Next →</span>
+              )}
+              {page < lastPage ? (
+                <a href={qs({ category, company, q, remote, country, posted, page: lastPage })} title="Last page">Last »</a>
+              ) : (
+                <span className="disabled">Last »</span>
               )}
             </div>
           )}

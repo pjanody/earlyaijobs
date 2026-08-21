@@ -21,6 +21,14 @@ const ALLOWED = new Set([
 // Tags whose CONTENT is not employer prose and must go with the tag.
 const DROP_WITH_CONTENT = new Set(["script", "style", "iframe", "noscript", "svg", "head", "title", "object", "embed"]);
 
+// Non-allowlisted BLOCK-level tags: dropping one erases a visual boundary,
+// so we replace it with a line break to keep adjacent texts separated.
+const DROPPED_BLOCK = new Set([
+  "div", "section", "article", "header", "footer", "aside", "main", "nav",
+  "table", "thead", "tbody", "tfoot", "tr", "td", "th", "figure",
+  "figcaption", "form", "fieldset", "dl", "dt", "dd", "center", "hr", "pre",
+]);
+
 function decodeOnce(s) {
   return String(s || "")
     .replaceAll("&lt;", "<").replaceAll("&gt;", ">")
@@ -107,14 +115,24 @@ function sanitizeDescriptionHtml(html) {
         out.push(`<${name}>`);
         stack.push(name);
       }
+      continue;
     }
-    // anything else: tag vanishes, surrounding text stays
+
+    // Dropped tag. If it was BLOCK-level, its boundary carried meaning:
+    // "<div>Annual Salary:</div><div>$380,000</div>" must not fuse into
+    // "Annual Salary:$380,000". A dropped block boundary becomes a line
+    // break; dropped inline tags (span, font…) vanish without a trace.
+    if (DROPPED_BLOCK.has(name)) out.push("<br>");
   }
 
   // Close whatever the source left open, innermost first.
   for (let i = stack.length - 1; i >= 0; i--) out.push(`</${stack[i]}>`);
 
-  const result = out.join("").replace(/(<br>\s*){3,}/g, "<br><br>").trim();
+  const result = out.join("")
+    .replace(/(<br>\s*){3,}/g, "<br><br>")
+    .replace(/(<p>)(\s*<br>)+/g, "$1").replace(/(<br>\s*)+(<\/p>)/g, "$2")
+    .replace(/^(\s*<br>)+/, "").replace(/(<br>\s*)+$/, "")
+    .trim();
   return result || null;
 }
 

@@ -8,7 +8,8 @@
 
 import {
   getJobs, getCompanyStats, APPROVED_COMPANIES, CATEGORY_LABELS,
-  COMPANY_LABELS, COMPANY_LOGOS, WIDE_LOGOS, timeAgo, freshness,
+  COMPANY_LABELS, COMPANY_LOGOS, COMPANY_DESCRIPTIONS, WIDE_LOGOS,
+  displayLocation, timeAgo, freshness,
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 
@@ -67,6 +68,12 @@ export default async function CompanyPage({ params }) {
             </div>
           </div>
 
+          {COMPANY_DESCRIPTIONS[slug] && (
+            <p style={{ maxWidth: 720, margin: "14px 0 0", fontSize: 14.5, lineHeight: 1.65, color: "var(--text-secondary)" }}>
+              {COMPANY_DESCRIPTIONS[slug]}
+            </p>
+          )}
+
           <div className="stats">
             <div className="stat">
               <b>{stats.total.toLocaleString()}</b>
@@ -111,11 +118,11 @@ export default async function CompanyPage({ params }) {
               <div className="job-main">
                 <h2>{job.title}</h2>
                 <div className="meta">
-                  {job.location && <span>{job.location}</span>}
+                  {job.location && <span>{displayLocation(job.location)}</span>}
                   {job.category && (
                     <span className="tag">{CATEGORY_LABELS[job.category] || job.category}</span>
                   )}
-                  {job.is_remote === true && <span className="tag">Remote</span>}
+                  {job.is_remote === true && <span className="tag tag-remote">Remote</span>}
                 </div>
               </div>
               {when && (

@@ -116,6 +116,11 @@ const TITLE_RULES = {
   marketing: [
     "product marketing", "growth marketing", "developer advocate", "developer relations",
     "developer evangelist", "technical evangelist", "content marketing", "communication",
+    // "Social Marketing Manager, Developers" tied 9-char "marketing" against
+    // 9-char "developer" and lost on iteration order (engineering is listed
+    // first). Longer phrases break the tie deterministically.
+    "marketing manager", "social marketing", "marketing lead", "marketing director",
+    "head of marketing", "field marketer", "events lead",
     "brand marketing", "marketing", "copywriter", "copy lead", "editor", "social media",
     "events", "community manager",
     // Growth/field marketing titles found in the production run.
