@@ -14,9 +14,13 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 600;
 
-export function generateStaticParams() {
-  return APPROVED_COMPANIES.map((slug) => ({ slug }));
-}
+// NO generateStaticParams — deliberately. With it, these pages prerender at
+// BUILD time, and the build then needs database access. The website component
+// has the public keys, but the scheduled-job component builds this same repo
+// without them, so its build dies trying to fetch job counts (that exact
+// failure took down the 2026-08-21 deploy). Rendering on demand with a
+// 10-minute cache behaves identically for visitors and keeps both builds
+// database-free.
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
