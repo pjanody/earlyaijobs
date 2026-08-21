@@ -49,6 +49,7 @@ export default function RootLayout({ children }) {
             </div>
             <nav className="nav">
               <a href="/">Jobs</a>
+              <a href="/companies">Companies</a>
               <a href="/about">About</a>
               <ThemeToggle />
             </nav>
@@ -68,15 +69,13 @@ export default function RootLayout({ children }) {
                 are handled entirely on the employer&apos;s own site.
               </p>
             </div>
+            {/* Company links deliberately NOT here — the Companies tab in the
+                top nav is the crawl path to /company/* pages. Footer stays
+                minimal. */}
             <nav className="footer-nav">
               <a href="/">Jobs</a>
+              <a href="/companies">Companies</a>
               <a href="/about">About</a>
-              <a href="/company/openai">OpenAI jobs</a>
-              <a href="/company/anthropic">Anthropic jobs</a>
-              <a href="/company/databricks">Databricks jobs</a>
-              <a href="/company/scaleai">Scale AI jobs</a>
-              <a href="/company/elevenlabs">ElevenLabs jobs</a>
-              <a href="/company/replit">Replit jobs</a>
             </nav>
           </div>
           <div className="wrap copyright">© {new Date().getFullYear()} EarlyAIJobs</div>

@@ -33,6 +33,7 @@ export const revalidate = 3600; // regenerate hourly
 export default async function sitemap() {
   const entries = [
     { url: BASE, changeFrequency: "hourly", priority: 1 },
+    { url: `${BASE}/companies`, changeFrequency: "daily", priority: 0.9 },
   ];
 
   // Filter views — these are the pages that rank for "remote ai jobs",

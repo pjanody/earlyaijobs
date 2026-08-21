@@ -162,6 +162,74 @@ header.site {
 .filters a.on .n { color: inherit; opacity: 0.75; }
 .filters .n { font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 
+/* Filters drawer: closed by default in markup; a tiny script opens it on
+   desktop. With JS off, desktop users click the summary once — acceptable. */
+.filters-drawer summary {
+  cursor: pointer; font-size: 13.5px; font-weight: 600; color: var(--text);
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
+  list-style: none; user-select: none;
+}
+.filters-drawer summary::-webkit-details-marker { display: none; }
+.filters-drawer summary::before { content: "☰  "; color: var(--text-muted); }
+.filters-drawer[open] summary { margin-bottom: 12px; }
+@media (min-width: 861px) {
+  .filters-drawer summary { display: none; }
+  /* If JS didn't run, keep content reachable: the summary is hidden, so force
+     the body visible on desktop regardless of open state. */
+  .filters-drawer:not([open]) .filters-body { display: block; }
+}
+
+.filter-form select {
+  width: 100%; padding: 7px 9px; font-size: 13.5px; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; appearance: auto; cursor: pointer;
+}
+.filter-form select:hover { border-color: var(--sage); }
+.filter-form .check {
+  display: flex; align-items: center; gap: 8px; margin-top: 18px;
+  font-size: 13.5px; color: var(--text-secondary); cursor: pointer;
+}
+.filter-form .check input { accent-color: var(--sage); width: 15px; height: 15px; }
+.apply-filters {
+  margin-top: 14px; width: 100%; padding: 8px; font-size: 13.5px; font-weight: 600;
+  color: var(--on-accent); background: var(--accent); border: 0;
+  border-radius: 6px; cursor: pointer;
+}
+.clear-filters {
+  display: block; margin-top: 16px; font-size: 13px; color: var(--sage) !important;
+  text-decoration: underline; padding: 0 !important; background: none !important;
+}
+
+/* ---------- active filter chips ---------- */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 11px; font-size: 12.5px; font-weight: 500;
+  color: var(--text); background: var(--surface-raised);
+  border: 1px solid var(--border); border-radius: 999px;
+  transition: border-color .12s;
+}
+.chip:hover { border-color: var(--sage); }
+.chip span { color: var(--text-muted); font-size: 13px; }
+.chip.clear { color: var(--sage); border-style: dashed; }
+
+/* ---------- companies hub ---------- */
+.company-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 12px;
+}
+.company-card {
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); transition: border-color .12s, background .12s;
+}
+.company-card:hover { background: var(--surface-raised); border-color: var(--sage); }
+.company-card-main { flex: 1; min-width: 0; }
+.company-card h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+.company-card-cta {
+  font-size: 12.5px; color: var(--sage); font-weight: 500; white-space: nowrap;
+}
+
 /* ---------- search ---------- */
 form.search { display: flex; gap: 8px; margin-bottom: 16px; }
 form.search input {

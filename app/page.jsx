@@ -1,8 +1,21 @@
 import {
   getJobs, getCategoryCounts, getCompanyCounts, getCountryCounts, getTotalCount,
   getFreshCount, getRemoteCount, getLastUpdated, CATEGORY_LABELS, COMPANY_LABELS,
-  COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, timeAgo, freshness,
+  COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, POSTED_WINDOWS,
+  timeAgo, freshness,
 } from "../lib/db";
+
+// Auto-submit the filter form when a control changes (falls back to the Apply
+// button with JavaScript off), and open the mobile filters drawer by default
+// on desktop widths.
+const filterScript = `
+(function(){
+  var form = document.getElementById('filter-form');
+  if (form) form.addEventListener('change', function(){ form.submit(); });
+  var drawer = document.getElementById('filters-drawer');
+  if (drawer && window.matchMedia('(min-width: 861px)').matches) drawer.open = true;
+})();
+`;
 
 export const revalidate = 300;
 
@@ -20,12 +33,13 @@ export default async function Home({ searchParams }) {
   const company = sp?.company || "";
   const remote = sp?.remote || "";
   const country = sp?.country || "";
+  const posted = POSTED_WINDOWS[sp?.posted] ? sp.posted : "";
   const q = sp?.q || "";
   const page = Math.max(1, Number(sp?.page) || 1);
 
   const [{ jobs, total }, catCounts, coCounts, countryCounts, totalAll, freshCount, remoteCount, lastUpdated] =
     await Promise.all([
-      getJobs({ category, company, remote, country, q, page }),
+      getJobs({ category, company, remote, country, posted, q, page }),
       getCategoryCounts(),
       getCompanyCounts(),
       getCountryCounts(),
@@ -45,6 +59,18 @@ export default async function Home({ searchParams }) {
   const sortedRegions = Object.entries(countryCounts.regions)
     .filter(([code]) => REGION_LABELS[code])
     .sort((a, b) => b[1] - a[1]);
+  const hasFilters = Boolean(category || company || remote === "1" || country || posted || q);
+
+  // Active-filter chips: each links to the same view with that one filter
+  // removed, so removal is plain navigation — no client state.
+  const chips = [
+    company && { label: COMPANY_LABELS[company] || company, href: qs({ category, q, remote, country, posted }) },
+    category && { label: CATEGORY_LABELS[category] || category, href: qs({ company, q, remote, country, posted }) },
+    country && { label: REGION_LABELS[country] || COUNTRY_LABELS[country] || country, href: qs({ category, company, q, remote, posted }) },
+    remote === "1" && { label: "Remote", href: qs({ category, company, q, country, posted }) },
+    posted && { label: POSTED_WINDOWS[posted], href: qs({ category, company, q, remote, country }) },
+    q && { label: `“${q}”`, href: qs({ category, company, remote, country, posted }) },
+  ].filter(Boolean);
 
   return (
     <>
@@ -83,64 +109,81 @@ export default async function Home({ searchParams }) {
 
       <div className="wrap layout">
         <aside className="filters">
-          <h3>Company</h3>
-          <a className={!company ? "on" : ""} href={qs({ category, q, remote, country })}>
-            All companies <span className="n">{totalAll}</span>
-          </a>
-          {sortedCos.map(([slug, n]) => (
-            <a
-              key={slug}
-              className={company === slug ? "on" : ""}
-              href={qs({ company: company === slug ? "" : slug, category, q, remote, country })}
-            >
-              {COMPANY_LABELS[slug] || slug} <span className="n">{n}</span>
-            </a>
-          ))}
+          {/* suppressHydrationWarning: the inline script opens this drawer on
+              desktop BEFORE React hydrates (so there's no flash of collapsed
+              filters), which makes the server HTML and client DOM differ on
+              the `open` attribute — deliberately. Same pattern as the theme
+              attribute on <html>. */}
+          <details id="filters-drawer" className="filters-drawer" suppressHydrationWarning>
+            <summary>Filters{hasFilters ? " · active" : ""}</summary>
+            <div className="filters-body">
+              <h3>Company</h3>
+              <a className={!company ? "on" : ""} href={qs({ category, q, remote, country, posted })}>
+                All companies <span className="n">{totalAll}</span>
+              </a>
+              {sortedCos.map(([slug, n]) => (
+                <a
+                  key={slug}
+                  className={company === slug ? "on" : ""}
+                  href={qs({ company: company === slug ? "" : slug, category, q, remote, country, posted })}
+                >
+                  {COMPANY_LABELS[slug] || slug} <span className="n">{n}</span>
+                </a>
+              ))}
 
-          <h3>Category</h3>
-          <a className={!category ? "on" : ""} href={qs({ company, q, remote, country })}>
-            All categories <span className="n">{totalAll}</span>
-          </a>
-          {sortedCats.map(([slug, n]) => (
-            <a
-              key={slug}
-              className={category === slug ? "on" : ""}
-              href={qs({ category: category === slug ? "" : slug, company, q, remote, country })}
-            >
-              {CATEGORY_LABELS[slug] || slug} <span className="n">{n}</span>
-            </a>
-          ))}
+              <form id="filter-form" className="filter-form" action="/" method="get">
+                {q && <input type="hidden" name="q" value={q} />}
+                {company && <input type="hidden" name="company" value={company} />}
 
-          <h3>Workplace</h3>
-          <a
-            className={remote === "1" ? "on" : ""}
-            href={qs({ remote: remote === "1" ? "" : "1", category, company, q, country })}
-          >
-            Remote only <span className="n">{remoteCount}</span>
-          </a>
+                <h3><label htmlFor="f-category">Category</label></h3>
+                <select id="f-category" name="category" defaultValue={category}>
+                  <option value="">All categories</option>
+                  {sortedCats.map(([slug, n]) => (
+                    <option key={slug} value={slug}>
+                      {CATEGORY_LABELS[slug] || slug} ({n})
+                    </option>
+                  ))}
+                </select>
 
-          <h3>Location</h3>
-          <a className={!country ? "on" : ""} href={qs({ category, company, q, remote })}>
-            All locations <span className="n">{totalAll}</span>
-          </a>
-          {sortedCountries.map(([code, n]) => (
-            <a
-              key={code}
-              className={country === code ? "on" : ""}
-              href={qs({ country: country === code ? "" : code, category, company, q, remote })}
-            >
-              {COUNTRY_LABELS[code] || code} <span className="n">{n}</span>
-            </a>
-          ))}
-          {sortedRegions.map(([code, n]) => (
-            <a
-              key={code}
-              className={country === code ? "on" : ""}
-              href={qs({ country: country === code ? "" : code, category, company, q, remote })}
-            >
-              {REGION_LABELS[code]} <span className="n">{n}</span>
-            </a>
-          ))}
+                <h3><label htmlFor="f-country">Location</label></h3>
+                <select id="f-country" name="country" defaultValue={country}>
+                  <option value="">All locations</option>
+                  {sortedCountries.map(([code, n]) => (
+                    <option key={code} value={code}>
+                      {COUNTRY_LABELS[code] || code} ({n})
+                    </option>
+                  ))}
+                  {sortedRegions.map(([code, n]) => (
+                    <option key={code} value={code}>
+                      {REGION_LABELS[code]} ({n})
+                    </option>
+                  ))}
+                </select>
+
+                <h3><label htmlFor="f-posted">Posted</label></h3>
+                <select id="f-posted" name="posted" defaultValue={posted}>
+                  <option value="">Any time</option>
+                  {Object.entries(POSTED_WINDOWS).map(([days, label]) => (
+                    <option key={days} value={days}>{label}</option>
+                  ))}
+                </select>
+
+                <label className="check">
+                  <input type="checkbox" name="remote" value="1" defaultChecked={remote === "1"} />
+                  Remote jobs only <span className="n">{remoteCount}</span>
+                </label>
+
+                <noscript>
+                  <button type="submit" className="apply-filters">Apply filters</button>
+                </noscript>
+              </form>
+
+              {hasFilters && (
+                <a className="clear-filters" href="/">Clear all filters</a>
+              )}
+            </div>
+          </details>
+          <script dangerouslySetInnerHTML={{ __html: filterScript }} />
         </aside>
 
         <main>
@@ -149,6 +192,7 @@ export default async function Home({ searchParams }) {
             {company && <input type="hidden" name="company" value={company} />}
             {remote && <input type="hidden" name="remote" value={remote} />}
             {country && <input type="hidden" name="country" value={country} />}
+            {posted && <input type="hidden" name="posted" value={posted} />}
             <input
               type="search"
               name="q"
@@ -159,6 +203,17 @@ export default async function Home({ searchParams }) {
             <button type="submit">Search</button>
           </form>
 
+          {chips.length > 0 && (
+            <div className="chips">
+              {chips.map((chip) => (
+                <a key={chip.label} className="chip" href={chip.href} title={`Remove ${chip.label} filter`}>
+                  {chip.label} <span aria-hidden="true">×</span>
+                </a>
+              ))}
+              <a className="chip clear" href="/">Clear all</a>
+            </div>
+          )}
+
           <div className="count">
             {total.toLocaleString()} {total === 1 ? "job" : "jobs"}
             {q && <> matching “{q}”</>}
@@ -166,6 +221,7 @@ export default async function Home({ searchParams }) {
             {category && <> in {CATEGORY_LABELS[category] || category}</>}
             {country && <> · {REGION_LABELS[country] || COUNTRY_LABELS[country] || country}</>}
             {remote === "1" && <> · remote</>}
+            {posted && <> · {POSTED_WINDOWS[posted].toLowerCase()}</>}
           </div>
 
           {jobs.length === 0 && (
@@ -221,7 +277,7 @@ export default async function Home({ searchParams }) {
           {lastPage > 1 && (
             <div className="pager">
               {page > 1 ? (
-                <a href={qs({ category, company, q, remote, country, page: page - 1 })}>← Previous</a>
+                <a href={qs({ category, company, q, remote, country, posted, page: page - 1 })}>← Previous</a>
               ) : (
                 <span className="disabled">← Previous</span>
               )}
@@ -229,7 +285,7 @@ export default async function Home({ searchParams }) {
                 Page {page} of {lastPage}
               </span>
               {page < lastPage ? (
-                <a href={qs({ category, company, q, remote, country, page: page + 1 })}>Next →</a>
+                <a href={qs({ category, company, q, remote, country, posted, page: page + 1 })}>Next →</a>
               ) : (
                 <span className="disabled">Next →</span>
               )}
