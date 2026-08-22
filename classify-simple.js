@@ -78,6 +78,11 @@ const TITLE_RULES = {
     "security engineer", "security analyst", "security architect", "cybersecurity",
     "trust and safety", "trust & safety", "application security", "appsec",
     "information security", "security", "detection engineer",
+    // "Incident Manager - Detection & Response" had no title rule, fell to
+    // description matching, and the same role got two different categories
+    // in two cities. Title rules are deterministic; descriptions vary.
+    "incident manager", "incident response", "detection & response",
+    "detection and response",
     // Trust & safety enforcement roles (10 in the 500 sample).
     "safeguards enforcement", "enforcement analyst", "threat investigator",
   ],
@@ -147,10 +152,21 @@ const TITLE_RULES = {
   "legal-compliance": [
     "counsel", "attorney", "lawyer", "paralegal", "legal", "compliance",
     "privacy", "contracts manager", "governance", "regulatory",
+    // "Safety & Security Counsel" went to Security because "security" (8)
+    // outscored "counsel" (7). A counsel role is legal regardless of its
+    // subject matter — longer phrases make that explicit.
+    "security counsel", "product counsel", "commercial counsel",
+    "corporate counsel", "general counsel", "legal counsel", "privacy counsel",
+    "employment counsel", "regulatory counsel", "litigation",
   ],
   policy: [
     "policy", "government affairs", "public affairs", "government relations",
     "economist", "public sector policy",
+    // "Policy Design Manager" tied 6-char "policy" against 6-char "design"
+    // and lost on list order. Longer phrases settle it: a policy-design role
+    // is a policy role, not a designer.
+    "policy design", "policy manager", "policy lead", "policy planning",
+    "policy analyst", "policy research",
   ],
   people: [
     "recruiter", "recruiting", "talent acquisition", "people operations",

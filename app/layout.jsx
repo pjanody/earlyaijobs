@@ -69,14 +69,9 @@ export default function RootLayout({ children }) {
                 are handled entirely on the employer&apos;s own site.
               </p>
             </div>
-            {/* Company links deliberately NOT here — the Companies tab in the
-                top nav is the crawl path to /company/* pages. Footer stays
-                minimal. */}
-            <nav className="footer-nav">
-              <a href="/">Jobs</a>
-              <a href="/companies">Companies</a>
-              <a href="/about">About</a>
-            </nav>
+            {/* No nav links in the footer at all (Patrick's call) — the
+                header already carries Jobs / Companies / About on every
+                page, and the sitemap covers crawlers. */}
           </div>
           <div className="wrap copyright">© {new Date().getFullYear()} EarlyAIJobs</div>
         </footer>

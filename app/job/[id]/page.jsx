@@ -1,6 +1,6 @@
 import {
   getJob, getSimilarJobs, CATEGORY_LABELS, COMPANY_LABELS, COMPANY_LOGOS,
-  WIDE_LOGOS, displayLocation, timeAgo, isFresh,
+  WIDE_LOGOS, displayLocation, employmentLabel, timeAgo, isFresh,
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 
@@ -155,7 +155,7 @@ export default async function JobPage({ params }) {
           <div className="meta" style={{ marginTop: 12 }}>
             {job.category && <span className="tag">{CATEGORY_LABELS[job.category] || job.category}</span>}
             {job.is_remote === true && <span className="tag tag-remote">Remote</span>}
-            {job.employment_type && job.employment_type !== "unknown" && <span className="tag">{job.employment_type}</span>}
+            {employmentLabel(job.employment_type) && <span className="tag">{employmentLabel(job.employment_type)}</span>}
           </div>
 
           {isClosed ? (
@@ -216,8 +216,8 @@ export default async function JobPage({ params }) {
               {job.location && <><dt>Location</dt><dd>{job.location}</dd></>}
               {when && <><dt>Posted</dt><dd>{when}</dd></>}
               {job.is_remote === true && <><dt>Workplace</dt><dd>Remote</dd></>}
-              {job.employment_type && job.employment_type !== "unknown" && (
-                <><dt>Type</dt><dd>{job.employment_type}</dd></>
+              {employmentLabel(job.employment_type) && (
+                <><dt>Type</dt><dd>{employmentLabel(job.employment_type)}</dd></>
               )}
             </dl>
           </div>

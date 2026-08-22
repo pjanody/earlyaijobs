@@ -33,8 +33,8 @@ export default async function About() {
 
         <p>
           Listings come directly from each company&apos;s official career feed and
-          are refreshed continuously, then sorted newest first — because applying
-          in the first 48 hours measurably improves your chances. When you find
+          are refreshed continuously, then sorted newest first — so you can
+          discover roles while they&apos;re still fresh. When you find
           something, we send you straight to the employer&apos;s own application
           page. EarlyAIJobs never collects your details and never charges you.
         </p>
@@ -64,9 +64,9 @@ export default async function About() {
           An automated pipeline reads each company&apos;s public job feed, stores
           new and updated listings, marks roles closed once they disappear from
           the source, and assigns each job a category so you can filter by
-          function. There is no manual curation and no AI guesswork in the
-          published data — categories come from deterministic rules we can
-          inspect and correct.
+          function. Published categories and filters come from deterministic,
+          inspectable rules — no AI decides what you see, and when a label is
+          wrong we can trace exactly why and correct it.
         </p>
 
         <h2>Who made it</h2>

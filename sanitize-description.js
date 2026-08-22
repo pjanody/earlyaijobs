@@ -128,11 +128,23 @@ function sanitizeDescriptionHtml(html) {
   // Close whatever the source left open, innermost first.
   for (let i = stack.length - 1; i >= 0; i--) out.push(`</${stack[i]}>`);
 
-  const result = out.join("")
+  let result = out.join("")
     .replace(/(<br>\s*){3,}/g, "<br><br>")
     .replace(/(<p>)(\s*<br>)+/g, "$1").replace(/(<br>\s*)+(<\/p>)/g, "$2")
     .replace(/^(\s*<br>)+/, "").replace(/(<br>\s*)+$/, "")
     .trim();
+
+  // Elements with no visible text render as phantom headings and blank
+  // bullets ("##" before a real heading on some OpenAI postings). Removing
+  // an EMPTY element deletes zero employer words — pure markup hygiene.
+  // Loop because removals cascade: an emptied <li> can empty its <ul>.
+  const EMPTY_EL = /<(h[1-6]|p|li|blockquote|strong|b|em|i)>(\s|&nbsp;|<br>)*<\/\1>/gi;
+  const EMPTY_LIST = /<(ul|ol)>(\s|<br>)*<\/\1>/gi;
+  let prev;
+  do { prev = result; result = result.replace(EMPTY_EL, "").replace(EMPTY_LIST, ""); }
+  while (result !== prev);
+  result = result.trim();
+
   return result || null;
 }
 

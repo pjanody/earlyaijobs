@@ -121,6 +121,23 @@ check("table cells separate instead of fusing", () => {
   if (out.includes("Base$100k")) throw new Error(`cells fused: ${out}`);
 });
 
+check("empty headings never survive (the OpenAI phantom-## bug)", () => {
+  const out = sanitizeDescriptionHtml("<h2></h2><h2>About the Role</h2><p>Real text.</p>");
+  if (/<h2>\s*<\/h2>/.test(out)) throw new Error(`phantom heading: ${out}`);
+  if (!out.includes("About the Role")) throw new Error("real heading lost");
+});
+
+check("empty elements cascade: emptied li empties its ul", () => {
+  const out = sanitizeDescriptionHtml("<ul><li><span></span></li></ul><p>Text.</p>");
+  if (/<(ul|li)/.test(out)) throw new Error(`empty list survived: ${out}`);
+  if (!out.includes("Text.")) throw new Error("text lost");
+});
+
+check("whitespace-only paragraphs removed, real ones kept", () => {
+  const out = sanitizeDescriptionHtml("<p>   </p><p>&nbsp;</p><p>Kept.</p>");
+  if ((out.match(/<p>/g) || []).length !== 1) throw new Error(out);
+});
+
 check("long realistic posting keeps every word", () => {
   const input = `<h2>About Anthropic</h2><p>Anthropic&#39;s mission is to create reliable systems.</p>
 <h2>About the role</h2><p>You will own the <em>full</em> sales cycle for mid-market accounts across the region.</p>

@@ -7,7 +7,9 @@ import {
   getCompanyHubStats, COMPANY_LABELS, COMPANY_LOGOS, WIDE_LOGOS,
 } from "../../lib/db";
 
-export const revalidate = 600;
+// Same window as the homepage so the two never show different totals for
+// longer than a cache cycle.
+export const revalidate = 300;
 
 export const metadata = {
   title: "AI Companies Hiring Now — EarlyAIJobs",
