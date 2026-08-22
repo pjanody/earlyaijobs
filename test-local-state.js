@@ -9,7 +9,7 @@ let mod;
 mod = await import("./lib/local-state.js");
 const {
   KEYS, readSaved, isSaved, toggleSaved, savedCount, savedIds,
-  readRecent, recordView, recentIds, clearRecent, beginVisit, validSince, validId,
+  beginVisit, validSince, validId,
 } = mod;
 
 let pass = 0, fail = 0;
@@ -81,30 +81,6 @@ check("invalid IDs from storage are discarded (untrusted input)", () => {
   });
   assert(savedIds(s).join(",") === "123", `got ${savedIds(s)}`);
   assert(validId("383589") && !validId("x") && !validId("1e9") && !validId(""), "validId rules");
-});
-
-// ---------- recently viewed ----------
-check("view adds, duplicate moves to front with fresh timestamp", () => {
-  const s = fakeStorage();
-  recordView(s, 1, "t1"); recordView(s, 2, "t2"); recordView(s, 1, "t3");
-  const jobs = readRecent(s).jobs;
-  assert(jobs.map(j => j.id).join(",") === "1,2", `order ${jobs.map(j => j.id)}`);
-  assert(jobs[0].viewedAt === "t3", "timestamp updated");
-});
-
-check("capped at 20", () => {
-  const s = fakeStorage();
-  for (let i = 1; i <= 30; i++) recordView(s, i);
-  assert(recentIds(s).length === 20, `${recentIds(s).length}`);
-  assert(recentIds(s)[0] === "30", "newest first");
-});
-
-check("malformed recent storage falls back, clear works", () => {
-  const s = fakeStorage({ [KEYS.recent]: JSON.stringify({ version: 1, jobs: "nope" }) });
-  assert(recentIds(s).length === 0, "fallback");
-  recordView(s, 8);
-  clearRecent(s);
-  assert(recentIds(s).length === 0, "cleared");
 });
 
 // ---------- visit state ----------

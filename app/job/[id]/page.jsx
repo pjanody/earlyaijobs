@@ -4,7 +4,6 @@ import {
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 import SaveButton from "../../save-button";
-import RecordView from "../../record-view";
 
 export const revalidate = 600;
 
@@ -123,7 +122,6 @@ export default async function JobPage({ params }) {
 
   return (
     <div className="wrap detail">
-      <RecordView jobId={job.id} />
       {!isClosed && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       )}

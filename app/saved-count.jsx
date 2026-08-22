@@ -26,10 +26,10 @@ export default function SavedCount() {
     };
   }, [refresh]);
 
-  // Fixed-width slot: room for "Saved (99)" is reserved from the first paint,
-  // so the count appearing after hydration never shifts the nav links beside it.
+  // Nav stays symmetrical (no reserved width, Patrick's call) — the count
+  // appearing after hydration nudges the links beside it slightly, once.
   return (
-    <a href="/saved" className="nav-saved" suppressHydrationWarning>
+    <a href="/saved" suppressHydrationWarning>
       Saved{count > 0 ? ` (${count > 99 ? "99+" : count})` : ""}
     </a>
   );

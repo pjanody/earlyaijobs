@@ -1,14 +1,14 @@
 "use client";
 
-// /saved page body: Saved jobs + Recently viewed, both resolved fresh from
-// the database by ID (storage holds IDs only — metadata would go stale).
-// One .in() query per section, IDs validated before querying. Closed jobs
-// stay visible with a Closed badge; vanished IDs get an unavailable row.
+// /saved page body: saved jobs resolved fresh from the database by ID
+// (storage holds IDs only — metadata would go stale). One .in() query, IDs
+// validated before querying. Closed jobs stay visible with a Closed badge;
+// vanished IDs get an unavailable row with Remove.
 
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
-  savedIds, readRecent, clearRecent, toggleSaved, validId, CHANGE_EVENT, KEYS,
+  savedIds, toggleSaved, validId, CHANGE_EVENT, KEYS,
 } from "../../lib/local-state";
 import SaveButton from "../save-button";
 
@@ -82,23 +82,6 @@ function JobRow({ id, job, onRemove }) {
   );
 }
 
-/** Compact row for Recently viewed — deliberately lighter than saved cards:
- *  a viewed job is context, a saved job is intent. */
-function RecentRow({ id, job, viewedAt }) {
-  if (!job) return null;
-  return (
-    <a className="recent-row" href={`/job/${id}`}>
-      <span className="recent-title">{job.title}</span>
-      <span className="recent-meta">
-        {COMPANY_LABELS[job.company_name] || job.company_name}
-        {job.location ? ` · ${String(job.location).split(/[;|]/)[0].trim()}` : ""}
-        {job.is_open === false ? " · Closed" : ""}
-      </span>
-      {timeAgo(viewedAt) && <span className="recent-when">viewed {timeAgo(viewedAt)}</span>}
-    </a>
-  );
-}
-
 /** Skeleton cards while current records load — localStorage is instant, so
  *  this covers only the one network fetch and should barely be visible. */
 function Skeletons() {
@@ -117,32 +100,26 @@ function Skeletons() {
 }
 
 export default function SavedList() {
-  const [state, setState] = useState({ loading: true, error: false, saved: [], recent: [], byId: {} });
-  const [confirmClear, setConfirmClear] = useState(false);
+  const [state, setState] = useState({ loading: true, error: false, saved: [], byId: {} });
 
   const load = useCallback(async () => {
-    let saved = [], recent = [];
+    let saved = [];
     try {
       saved = savedIds(window.localStorage);
-      // 20 kept in storage, 10 shown — Recently Viewed is context, not a
-      // second job database. Entries carry viewedAt for the "3h ago" label.
-      recent = readRecent(window.localStorage).jobs
-        .filter((j) => !saved.includes(j.id))
-        .slice(0, 10);
-    } catch { /* storage unavailable → both empty */ }
+    } catch { /* storage unavailable → empty */ }
     try {
-      const byId = await fetchByIds([...new Set([...saved, ...recent.map((j) => j.id)])]);
-      setState({ loading: false, error: false, saved, recent, byId });
+      const byId = await fetchByIds(saved);
+      setState({ loading: false, error: false, saved, byId });
     } catch {
       // Network failure is not user intent: keep IDs, show error, offer retry.
-      setState({ loading: false, error: true, saved, recent, byId: {} });
+      setState({ loading: false, error: true, saved, byId: {} });
     }
   }, []);
 
   useEffect(() => {
     load();
     const onChange = () => load();
-    const onStorage = (e) => { if (!e.key || e.key === KEYS.saved || e.key === KEYS.recent) load(); };
+    const onStorage = (e) => { if (!e.key || e.key === KEYS.saved) load(); };
     window.addEventListener(CHANGE_EVENT, onChange);
     window.addEventListener("storage", onStorage);
     return () => {
@@ -170,17 +147,6 @@ export default function SavedList() {
     } catch { /* fine */ }
   };
 
-  // One-click confirmation: first click arms, second click clears. Saved
-  // jobs are never touched by this.
-  const clearHistory = () => {
-    if (!confirmClear) { setConfirmClear(true); return; }
-    try {
-      clearRecent(window.localStorage);
-      window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
-    } catch { /* fine */ }
-    setConfirmClear(false);
-  };
-
   return (
     <>
       {state.saved.length === 0 ? (
@@ -195,25 +161,9 @@ export default function SavedList() {
         ))
       )}
 
-      {state.recent.length > 0 && (
-        <>
-          <div className="saved-section-head">
-            <h2>Recently viewed</h2>
-            <button type="button" className={`chip${confirmClear ? " chip-danger" : ""}`} onClick={clearHistory}
-              onBlur={() => setConfirmClear(false)}>
-              {confirmClear ? "Clear recently viewed jobs?" : "Clear history"}
-            </button>
-          </div>
-          <div className="recent-list">
-            {state.recent.map((r) => (
-              <RecentRow key={r.id} id={r.id} job={state.byId[r.id]} viewedAt={r.viewedAt} />
-            ))}
-          </div>
-        </>
-      )}
 
       <p className="saved-note">
-        Saved and recently viewed jobs are stored locally in this browser.
+        Saved jobs are stored locally in this browser.
         They won&apos;t follow you to other devices.
       </p>
     </>
