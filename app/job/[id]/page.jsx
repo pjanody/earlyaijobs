@@ -20,7 +20,7 @@ export const revalidate = 600;
 // Formatting logic lives in description-format.js so the fidelity tests run
 // against the exact code production uses. This component only maps blocks to
 // markup. Semantic h2s: the job title above is the page's only h1.
-import { blocksOf } from "../../../description-format";
+import { blocksOf, promoteHeadings } from "../../../description-format";
 
 function TextDescription({ text }) {
   let sec = 0;
@@ -43,7 +43,7 @@ function TextDescription({ text }) {
  *  only h1), and each h2 gets a stable id so the jump-nav can anchor to it. */
 function prepareHtml(html) {
   let i = 0;
-  return html
+  return promoteHeadings(html)
     .replace(/<(\/?)h1>/gi, "<$1h2>")
     .replace(/<h2>/gi, () => `<h2 id="sec-${i++}">`);
 }
@@ -52,7 +52,8 @@ function prepareHtml(html) {
  *  Purely derived — nothing is invented; a posting with no headings gets no nav. */
 function sectionLabels(job) {
   if (job.description_html) {
-    const withH2 = job.description_html.replace(/<(\/?)h1>/gi, "<$1h2>");
+    // Same preparation as the renderer, so labels and anchors always agree.
+    const withH2 = promoteHeadings(job.description_html).replace(/<(\/?)h1>/gi, "<$1h2>");
     return [...withH2.matchAll(/<h2>([\s\S]*?)<\/h2>/gi)]
       .map((m) => m[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim())
       .filter(Boolean);
@@ -74,7 +75,7 @@ export async function generateMetadata({ params }) {
   const company = COMPANY_LABELS[job.company_name] || job.company_name;
   return {
     title: `${job.title} at ${company} — EarlyAIJobs`,
-    description: `${job.title} at ${company}${job.location ? ` · ${job.location}` : ""}. Apply directly on the company's careers page.`,
+    description: `${job.title} at ${company}${job.location ? ` · ${displayLocation(job.location, 3)}` : ""}. Apply directly on the company's careers page.`,
     alternates: { canonical: `https://www.earlyaijobs.com/job/${job.id}` },
   };
 }
@@ -146,7 +147,10 @@ export default async function JobPage({ params }) {
               <h1>{job.title}</h1>
               <div className="sub">
                 <a href={`/company/${job.company_name}`} style={{ color: "var(--text)", fontWeight: 600 }}>{company}</a>
-                {job.location && <><span>·</span><span>{job.location}</span></>}
+                {/* maxSegments 99: nothing is hidden on the detail page — this
+                    only de-duplicates repeats and translates feed codes like
+                    USCA into words a job seeker can read. */}
+                {job.location && <><span>·</span><span>{displayLocation(job.location, 99)}</span></>}
                 {when && <span className={fresh ? "when new" : "when"}>{when}</span>}
               </div>
             </div>
@@ -213,7 +217,7 @@ export default async function JobPage({ params }) {
             <dl className="snapshot">
               <dt>Company</dt><dd><a href={`/company/${job.company_name}`}>{company}</a></dd>
               {job.category && <><dt>Category</dt><dd>{CATEGORY_LABELS[job.category] || job.category}</dd></>}
-              {job.location && <><dt>Location</dt><dd>{job.location}</dd></>}
+              {job.location && <><dt>Location</dt><dd>{displayLocation(job.location, 99)}</dd></>}
               {when && <><dt>Posted</dt><dd>{when}</dd></>}
               {job.is_remote === true && <><dt>Workplace</dt><dd>Remote</dd></>}
               {employmentLabel(job.employment_type) && (

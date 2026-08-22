@@ -63,4 +63,44 @@ function textOfBlocks(blocks) {
     .join("\n");
 }
 
-module.exports = { KNOWN_HEADINGS, lineKind, blocksOf, textOfBlocks, BULLET_RE };
+// ---------------------------------------------------------------------------
+// HTML path: promote source "visual headings" to semantic headings.
+//
+// Not every ATS marks sections with <h2>. Databricks emits section labels as
+// standalone bold paragraphs ("Pay Range Transparency") or plain lines ending
+// in a colon ("The impact you will have:"); some OpenAI postings do the same.
+// Those pages therefore rendered as walls of text with no jump-nav, while
+// Anthropic/ElevenLabs pages (which do use real headings) looked structured.
+//
+// This changes MARKUP ONLY — <p> becomes <h2>, the words are identical and
+// stay in place. A paragraph is promoted only when it is ENTIRELY a short
+// bold run, or a short colon-terminated line with no sentence punctuation.
+// Anything longer, or containing other content, is left alone.
+// ---------------------------------------------------------------------------
+
+function isHeadingText(text) {
+  const t = String(text).replace(/\s+/g, " ").trim();
+  if (!t || t.length > 70) return false;
+  if (/[.!?]\s/.test(t)) return false;          // contains a sentence break
+  if (t.endsWith(".")) return false;            // is a sentence
+  const bare = t.replace(/:$/, "").replace(/[’]/g, "'").toLowerCase();
+  if (t.endsWith(":")) return true;             // "The impact you will have:"
+  if (KNOWN_HEADINGS.has(bare)) return true;    // "About Databricks", "Benefits"
+  // A short bold line with no terminal punctuation reads as a section label.
+  return t.split(/\s+/).length <= 7;
+}
+
+function promoteHeadings(html) {
+  return String(html || "")
+    // Whole paragraph is one bold run: <p><strong>Pay Range Transparency</strong></p>
+    .replace(/<p>\s*<(strong|b)>([^<]+)<\/\1>\s*<\/p>/gi, (m, tag, text) =>
+      isHeadingText(text) ? `<h2>${text.trim()}</h2>` : m)
+    // Plain short line ending in a colon: <p>The impact you will have:</p>
+    .replace(/<p>([^<]+)<\/p>/gi, (m, text) =>
+      isHeadingText(text) && text.trim().endsWith(":") ? `<h2>${text.trim()}</h2>` : m);
+}
+
+module.exports = {
+  KNOWN_HEADINGS, lineKind, blocksOf, textOfBlocks, BULLET_RE,
+  isHeadingText, promoteHeadings,
+};

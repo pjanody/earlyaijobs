@@ -77,5 +77,52 @@ check("empty input renders nothing, throws nothing", () => {
   if (blocksOf("").length !== 0 || blocksOf(null).length !== 0) throw new Error("phantom blocks");
 });
 
+// ---------------------------------------------------------------------------
+// HTML heading promotion (Databricks / some OpenAI postings mark sections with
+// bold or colon lines instead of real headings). Markup changes; text must not.
+// ---------------------------------------------------------------------------
+const { promoteHeadings } = require("./description-format");
+const visibleText = (html) => String(html).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+function promoFidelity(html) {
+  const out = promoteHeadings(html);
+  if (visibleText(out) !== visibleText(html)) {
+    throw new Error(`text changed!\n  in:  ${visibleText(html)}\n  out: ${visibleText(out)}`);
+  }
+  return out;
+}
+
+check("bold-only paragraph becomes a heading (Databricks)", () => {
+  const out = promoFidelity("<p><strong>Pay Range Transparency</strong></p><p>Databricks is committed to fair pay.</p>");
+  if (!out.includes("<h2>Pay Range Transparency</h2>")) throw new Error(out);
+});
+
+check("colon line becomes a heading (Databricks)", () => {
+  const out = promoFidelity("<p>The impact you will have:</p><ul><li>Lead projects</li></ul>");
+  if (!out.includes("<h2>The impact you will have:</h2>")) throw new Error(out);
+});
+
+check("known label without colon becomes a heading", () => {
+  const out = promoFidelity("<p><strong>Benefits</strong></p><p>We offer things.</p>");
+  if (!out.includes("<h2>Benefits</h2>")) throw new Error(out);
+});
+
+check("real sentences are NEVER promoted", () => {
+  const long = "<p>We are committed to fair and equitable compensation practices across every region we operate in.</p>";
+  if (promoFidelity(long).includes("<h2>")) throw new Error("sentence promoted");
+  const bolded = "<p><strong>We encourage you to apply even if you do not meet every qualification.</strong></p>";
+  if (promoFidelity(bolded).includes("<h2>")) throw new Error("bold sentence promoted");
+});
+
+check("bold label followed by body text is left alone", () => {
+  const out = promoFidelity("<p><strong>Minimum education:</strong> Bachelor&apos;s degree or equivalent</p>");
+  if (out.includes("<h2>")) throw new Error(`inline label promoted: ${out}`);
+});
+
+check("existing real headings untouched", () => {
+  const out = promoFidelity("<h2>About the role</h2><p>Text.</p>");
+  if (!out.startsWith("<h2>About the role</h2>")) throw new Error(out);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

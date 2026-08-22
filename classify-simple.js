@@ -111,6 +111,11 @@ const TITLE_RULES = {
     "alliance rvp", "alliances", "alliance manager", "strategic accounts", "renewals",
     // Enablement = GTM training function, not education. Longest-match makes
     // these beat any shorter education phrase.
+    // Marketplace / partner-ecosystem roles landed in Other because no rule
+    // claimed them. In this taxonomy partnerships live under Sales (GTM), so
+    // that is where an ecosystem owner belongs — not the exception bucket.
+    "marketplace", "partner programs", "partner ecosystem", "partnerships",
+    "partner development", "channel partner", "alliances",
     "sales enablement", "gtm enablement", "partner enablement",
     "field enablement", "revenue enablement", "scale enablement",
     "enablement lead", "enablement manager",
