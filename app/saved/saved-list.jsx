@@ -22,6 +22,7 @@ const COMPANY_LABELS = {
   elevenlabs: "ElevenLabs", databricks: "Databricks", replit: "Replit",
   cohere: "Cohere", perplexity: "Perplexity", cursor: "Cursor",
   cognition: "Cognition", mistral: "Mistral AI",
+  figureai: "Figure AI", coreweave: "CoreWeave",
 };
 const CATEGORY_LABELS = {
   engineering: "Engineering", research: "Research", data: "Data", product: "Product",

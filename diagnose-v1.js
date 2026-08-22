@@ -12,7 +12,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { normalizeV1 } = require("./normalize-v1");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral"];
+const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave"];
 const pct = (n, d) => (d ? `${((n / d) * 100).toFixed(1)}%` : "—");
 
 const PAGE = 200;

@@ -9,7 +9,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { parseLocation } = require("./location-parser");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral"];
+const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave"];
 const LIMIT = Number(process.argv[2] || 20);
 
 // Any mention of workplace-ish vocabulary, even the vague kind our rules
