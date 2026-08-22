@@ -353,19 +353,24 @@ form.search button:hover { background: var(--accent-hover); }
   gap: 36px; align-items: start;
 }
 .detail-main { max-width: 780px; min-width: 0; }
-.detail-side { display: flex; flex-direction: column; gap: 14px; }
+/* The whole sidebar sticks as one unit while the description scrolls, so
+   Apply is always at the top of the viewport. If the viewport is shorter
+   than the sidebar, the sidebar scrolls internally rather than trapping its
+   bottom cards off-screen. */
+.detail-side {
+  display: flex; flex-direction: column; gap: 14px;
+  position: sticky; top: 16px;
+  max-height: calc(100vh - 32px); overflow-y: auto;
+}
 
 .side-card {
   border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--surface); padding: 16px 18px;
+  background: var(--surface); padding: 16px 18px; flex-shrink: 0;
 }
 .side-card h2 {
   font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em;
   color: var(--text-muted); font-weight: 700; margin: 0 0 12px;
 }
-/* The Apply card stays reachable while reading a long description. Only this
-   card is sticky — a fully sticky sidebar overflows short viewports. */
-.apply-card { position: sticky; top: 16px; z-index: 2; }
 .apply-card .apply { display: block; text-align: center; margin: 0; }
 .apply-card p { font-size: 12px; color: var(--text-muted); margin: 10px 0 0; }
 .apply-inline { margin-top: 18px; }
@@ -384,9 +389,11 @@ form.search button:hover { background: var(--accent-hover); }
 .similar:hover .similar-title { color: var(--sage); }
 .similar-meta { display: block; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
-.share-row { display: flex; gap: 16px; font-size: 13.5px; }
+/* Wide gap BETWEEN the three options, tight gap WITHIN each icon+word pair —
+   the spacing itself communicates the grouping. */
+.share-row { display: flex; gap: 24px; font-size: 13.5px; }
 .share-row a {
-  display: inline-flex; align-items: center; gap: 6px;
+  display: inline-flex; align-items: center; gap: 4px;
   color: var(--text-secondary); transition: color .12s;
 }
 .share-row a:hover { color: var(--sage); }
@@ -394,9 +401,39 @@ form.search button:hover { background: var(--accent-hover); }
 
 .provenance { margin-top: 34px; color: var(--text-muted); font-size: 13px; }
 
+/* ---------- jump navigation for long postings ---------- */
+.toc {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px;
+  margin-top: 20px; padding: 12px 16px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); font-size: 13px;
+}
+.toc-label {
+  color: var(--text-muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 700; margin-right: 2px;
+}
+.toc a { color: var(--text-secondary); }
+.toc a:hover { color: var(--sage); }
+html { scroll-behavior: smooth; }
+.desc .desc-h, .desc-html h2 { scroll-margin-top: 20px; }
+
+/* ---------- mobile sticky apply bar ---------- */
+.mobile-apply-bar {
+  display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  background: var(--surface); border-top: 1px solid var(--border);
+}
+.mobile-apply-bar a {
+  display: block; text-align: center; padding: 11px;
+  background: var(--accent); color: var(--on-accent);
+  border-radius: var(--radius); font-weight: 600; font-size: 14.5px;
+}
 @media (max-width: 860px) {
   .detail-layout { grid-template-columns: 1fr; gap: 22px; }
-  .apply-card { position: static; }
+  .detail-side { position: static; max-height: none; overflow: visible; }
+  .mobile-apply-bar { display: block; }
+  /* keep the last content visible above the fixed bar */
+  .detail { padding-bottom: 76px; }
 }
 
 /* ---------- description typography (both render paths) ---------- */

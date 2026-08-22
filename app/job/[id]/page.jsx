@@ -23,13 +23,14 @@ export const revalidate = 600;
 import { blocksOf } from "../../../description-format";
 
 function TextDescription({ text }) {
+  let sec = 0;
   return (
     <div className="desc">
       {blocksOf(text).map((b, i) => {
         if (b.kind === "bullet-list") {
           return <ul key={i}>{b.items.map((item, j) => <li key={j}>{item}</li>)}</ul>;
         }
-        if (b.kind === "heading") return <h2 className="desc-h" key={i}>{b.text}</h2>;
+        if (b.kind === "heading") return <h2 className="desc-h" id={`sec-${sec++}`} key={i}>{b.text}</h2>;
         return <p key={i}>{b.text}</p>;
       })}
     </div>
@@ -37,12 +38,33 @@ function TextDescription({ text }) {
 }
 
 /** Employer HTML was sanitized at ingestion (allowlist tags, validated links,
- *  no attributes survive from the source). The only render-time adjustment:
- *  demote any h1 to h2 so the page keeps a single h1 — a tag swap, never a
- *  text change. */
+ *  no attributes survive from the source). Render-time adjustments are
+ *  markup-only, never text: h1 demoted to h2 (the job title is the page's
+ *  only h1), and each h2 gets a stable id so the jump-nav can anchor to it. */
+function prepareHtml(html) {
+  let i = 0;
+  return html
+    .replace(/<(\/?)h1>/gi, "<$1h2>")
+    .replace(/<h2>/gi, () => `<h2 id="sec-${i++}">`);
+}
+
+/** Section labels for the jump-nav, from whichever description path renders.
+ *  Purely derived — nothing is invented; a posting with no headings gets no nav. */
+function sectionLabels(job) {
+  if (job.description_html) {
+    const withH2 = job.description_html.replace(/<(\/?)h1>/gi, "<$1h2>");
+    return [...withH2.matchAll(/<h2>([\s\S]*?)<\/h2>/gi)]
+      .map((m) => m[1].replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim())
+      .filter(Boolean);
+  }
+  if (job.description) {
+    return blocksOf(job.description).filter((b) => b.kind === "heading").map((b) => b.text);
+  }
+  return [];
+}
+
 function HtmlDescription({ html }) {
-  const demoted = html.replace(/<(\/?)h1>/gi, "<$1h2>");
-  return <div className="desc desc-html" dangerouslySetInnerHTML={{ __html: demoted }} />;
+  return <div className="desc desc-html" dangerouslySetInnerHTML={{ __html: prepareHtml(html) }} />;
 }
 
 export async function generateMetadata({ params }) {
@@ -150,6 +172,21 @@ export default async function JobPage({ params }) {
             <div className="apply-inline">{applyCta}</div>
           )}
 
+          {(() => {
+            const labels = sectionLabels(job);
+            // Only long, well-structured postings earn a jump-nav; a short
+            // posting with two sections doesn't need navigation chrome.
+            if (labels.length < 4) return null;
+            return (
+              <nav className="toc" aria-label="Sections of this job posting">
+                <span className="toc-label">On this page:</span>
+                {labels.map((label, i) => (
+                  <a key={i} href={`#sec-${i}`}>{label}</a>
+                ))}
+              </nav>
+            );
+          })()}
+
           {job.description_html
             ? <HtmlDescription html={job.description_html} />
             : job.description && <TextDescription text={job.description} />}
@@ -230,6 +267,17 @@ export default async function JobPage({ params }) {
           </div>
         </aside>
       </div>
+
+      {/* Mobile-only sticky Apply bar — long postings are exactly where the
+          top button scrolls out of reach. Hidden on desktop (the sidebar
+          card is sticky there) and on closed roles. */}
+      {!isClosed && (
+        <div className="mobile-apply-bar">
+          <a href={job.url} target="_blank" rel="noopener noreferrer">
+            Apply on {company}&apos;s site ↗
+          </a>
+        </div>
+      )}
     </div>
   );
 }

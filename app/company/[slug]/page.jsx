@@ -8,8 +8,8 @@
 
 import {
   getJobs, getCompanyStats, APPROVED_COMPANIES, CATEGORY_LABELS,
-  COMPANY_LABELS, COMPANY_LOGOS, COMPANY_DESCRIPTIONS, WIDE_LOGOS,
-  displayLocation, timeAgo, freshness,
+  COMPANY_LABELS, COMPANY_LOGOS, COMPANY_DESCRIPTIONS, COMPANY_WEBSITES,
+  WIDE_LOGOS, displayLocation, timeAgo, freshness,
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 
@@ -71,6 +71,19 @@ export default async function CompanyPage({ params }) {
           {COMPANY_DESCRIPTIONS[slug] && (
             <p style={{ maxWidth: 720, margin: "14px 0 0", fontSize: 14.5, lineHeight: 1.65, color: "var(--text-secondary)" }}>
               {COMPANY_DESCRIPTIONS[slug]}
+              {COMPANY_WEBSITES[slug] && (
+                <>
+                  {" "}
+                  <a
+                    href={COMPANY_WEBSITES[slug]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "var(--sage)", fontWeight: 500, whiteSpace: "nowrap" }}
+                  >
+                    Visit {company}&apos;s website ↗
+                  </a>
+                </>
+              )}
             </p>
           )}
 
