@@ -8,7 +8,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
-  savedIds, recentIds, clearRecent, toggleSaved, validId, CHANGE_EVENT, KEYS,
+  savedIds, readRecent, clearRecent, toggleSaved, validId, CHANGE_EVENT, KEYS,
 } from "../../lib/local-state";
 import SaveButton from "../save-button";
 
@@ -82,17 +82,56 @@ function JobRow({ id, job, onRemove }) {
   );
 }
 
+/** Compact row for Recently viewed — deliberately lighter than saved cards:
+ *  a viewed job is context, a saved job is intent. */
+function RecentRow({ id, job, viewedAt }) {
+  if (!job) return null;
+  return (
+    <a className="recent-row" href={`/job/${id}`}>
+      <span className="recent-title">{job.title}</span>
+      <span className="recent-meta">
+        {COMPANY_LABELS[job.company_name] || job.company_name}
+        {job.location ? ` · ${String(job.location).split(/[;|]/)[0].trim()}` : ""}
+        {job.is_open === false ? " · Closed" : ""}
+      </span>
+      {timeAgo(viewedAt) && <span className="recent-when">viewed {timeAgo(viewedAt)}</span>}
+    </a>
+  );
+}
+
+/** Skeleton cards while current records load — localStorage is instant, so
+ *  this covers only the one network fetch and should barely be visible. */
+function Skeletons() {
+  return (
+    <div aria-hidden="true">
+      {[0, 1, 2].map((i) => (
+        <div className="job skeleton" key={i}>
+          <div className="job-main">
+            <div className="skeleton-bar w60" />
+            <div className="skeleton-bar w35" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SavedList() {
   const [state, setState] = useState({ loading: true, error: false, saved: [], recent: [], byId: {} });
+  const [confirmClear, setConfirmClear] = useState(false);
 
   const load = useCallback(async () => {
     let saved = [], recent = [];
     try {
       saved = savedIds(window.localStorage);
-      recent = recentIds(window.localStorage).filter((id) => !saved.includes(id));
+      // 20 kept in storage, 10 shown — Recently Viewed is context, not a
+      // second job database. Entries carry viewedAt for the "3h ago" label.
+      recent = readRecent(window.localStorage).jobs
+        .filter((j) => !saved.includes(j.id))
+        .slice(0, 10);
     } catch { /* storage unavailable → both empty */ }
     try {
-      const byId = await fetchByIds([...new Set([...saved, ...recent])]);
+      const byId = await fetchByIds([...new Set([...saved, ...recent.map((j) => j.id)])]);
       setState({ loading: false, error: false, saved, recent, byId });
     } catch {
       // Network failure is not user intent: keep IDs, show error, offer retry.
@@ -113,7 +152,7 @@ export default function SavedList() {
   }, [load]);
 
   if (state.loading) {
-    return <p className="saved-note">Loading your saved jobs…</p>;
+    return <Skeletons />;
   }
   if (state.error) {
     return (
@@ -131,11 +170,15 @@ export default function SavedList() {
     } catch { /* fine */ }
   };
 
+  // One-click confirmation: first click arms, second click clears. Saved
+  // jobs are never touched by this.
   const clearHistory = () => {
+    if (!confirmClear) { setConfirmClear(true); return; }
     try {
       clearRecent(window.localStorage);
       window.dispatchEvent(new CustomEvent(CHANGE_EVENT));
     } catch { /* fine */ }
+    setConfirmClear(false);
   };
 
   return (
@@ -156,11 +199,16 @@ export default function SavedList() {
         <>
           <div className="saved-section-head">
             <h2>Recently viewed</h2>
-            <button type="button" className="chip" onClick={clearHistory}>Clear recently viewed</button>
+            <button type="button" className={`chip${confirmClear ? " chip-danger" : ""}`} onClick={clearHistory}
+              onBlur={() => setConfirmClear(false)}>
+              {confirmClear ? "Clear recently viewed jobs?" : "Clear history"}
+            </button>
           </div>
-          {state.recent.map((id) => state.byId[id] && (
-            <JobRow key={id} id={id} job={state.byId[id]} />
-          ))}
+          <div className="recent-list">
+            {state.recent.map((r) => (
+              <RecentRow key={r.id} id={r.id} job={state.byId[r.id]} viewedAt={r.viewedAt} />
+            ))}
+          </div>
         </>
       )}
 

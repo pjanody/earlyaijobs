@@ -243,6 +243,33 @@ header.site {
 .saved-note { margin-top: 26px; color: var(--text-muted); font-size: 12.5px; }
 button.chip { cursor: pointer; font-family: inherit; }
 
+/* Reserve width for "Saved (99)" so the hydrated count never shifts the nav. */
+.nav-saved { display: inline-block; min-width: 76px; }
+
+/* Skeleton cards for the /saved page's brief fetch window. */
+.job.skeleton { pointer-events: none; }
+.skeleton-bar {
+  height: 13px; border-radius: 6px; background: var(--surface-raised);
+  animation: skeleton-pulse 1.2s ease-in-out infinite;
+}
+.skeleton-bar.w60 { width: 60%; margin-bottom: 9px; }
+.skeleton-bar.w35 { width: 35%; }
+@keyframes skeleton-pulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+
+/* Recently viewed: compact rows — context, not a second job list. */
+.recent-list { border: 1px solid var(--border); border-radius: var(--radius); }
+.recent-row {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  padding: 10px 14px; border-top: 1px solid var(--border);
+}
+.recent-row:first-child { border-top: 0; }
+.recent-row:hover { background: var(--surface-raised); }
+.recent-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.recent-row:hover .recent-title { color: var(--sage); }
+.recent-meta { font-size: 12.5px; color: var(--text-secondary); }
+.recent-when { margin-left: auto; font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+.chip-danger { color: #e07070 !important; border-color: #e07070 !important; }
+
 /* ---------- new-since-last-visit banner ---------- */
 .new-since-banner {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
