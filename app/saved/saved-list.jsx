@@ -20,6 +20,8 @@ const supabase = createClient(
 const COMPANY_LABELS = {
   openai: "OpenAI", anthropic: "Anthropic", scaleai: "Scale AI",
   elevenlabs: "ElevenLabs", databricks: "Databricks", replit: "Replit",
+  cohere: "Cohere", perplexity: "Perplexity", cursor: "Cursor",
+  cognition: "Cognition", mistral: "Mistral AI",
 };
 const CATEGORY_LABELS = {
   engineering: "Engineering", research: "Research", data: "Data", product: "Product",

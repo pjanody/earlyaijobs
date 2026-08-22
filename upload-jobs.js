@@ -9,7 +9,15 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 // the next run collects it — no migration, no backfill, nothing else to change.
 const greenhouseCompanies = ["anthropic", "databricks", "scaleai"];
 const leverCompanies = [];
-const ashbyCompanies = ["openai", "elevenlabs", "replit"];
+// An entry is either a plain slug (board slug === our company name) or
+// { slug, name } when they differ — Mistral's Ashby board is "mistral.ai"
+// but our company name is "mistral". Batch 2 added 2026-08-23; all five
+// feeds verified live before adding.
+const ashbyCompanies = [
+  "openai", "elevenlabs", "replit",
+  "cohere", "perplexity", "cursor", "cognition",
+  { slug: "mistral.ai", name: "mistral" },
+];
 
 // Previously tracked, kept for reference should the scope ever widen:
 //   greenhouse: stripe, duolingo, figma, gitlab, discord, reddit, robinhood,
@@ -111,7 +119,7 @@ function normaliseAshbyWorkplace(value) {
   return null;
 }
 
-async function fetchAshby(slug) {
+async function fetchAshby(slug, name = slug) {
   const res = await fetch(`https://api.ashbyhq.com/posting-api/job-board/${slug}`);
   if (!res.ok) return null;
   const data = await res.json();
@@ -119,7 +127,7 @@ async function fetchAshby(slug) {
   return data.jobs.map((job) => ({
     source_platform: "ashby",
     source_id: String(job.id),
-    company_name: slug,
+    company_name: name,
     title: job.title,
     location: job.location,
     url: job.jobUrl,
@@ -255,7 +263,13 @@ async function main() {
 
   for (const slug of greenhouseCompanies) await processCompany(slug, "greenhouse", fetchGreenhouse, report);
   for (const slug of leverCompanies)      await processCompany(slug, "lever", fetchLever, report);
-  for (const slug of ashbyCompanies)      await processCompany(slug, "ashby", fetchAshby, report);
+  for (const entry of ashbyCompanies) {
+    const slug = typeof entry === "string" ? entry : entry.slug;
+    const name = typeof entry === "string" ? entry : entry.name;
+    // processCompany tracks/reports by OUR company name; the fetcher closure
+    // carries the (possibly different) Ashby board slug.
+    await processCompany(name, "ashby", () => fetchAshby(slug, name), report);
+  }
 
   // Jobs inserted during this run: first_seen_at is set by the database default
   // on INSERT only, so upserts of existing rows never touch it.

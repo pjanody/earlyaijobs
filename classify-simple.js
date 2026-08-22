@@ -21,7 +21,9 @@ const CLASSIFIER_VERSION = "simple-1.1";
 
 // Approved AI companies for launch. Every open job from these companies is
 // listed on the website; the classifier only assigns a category.
-// mistral and cohere removed for launch: both left Lever and currently return
+// (2026-08-23: mistral and cohere are BACK — both resurfaced on Ashby and
+// were re-added in batch 2 alongside perplexity, cursor, and cognition.)
+// Historical note: both previously left Lever and at that time returned
 // no open jobs. Revisit once their current ATS platform is identified.
 const APPROVED_COMPANIES = [
   "openai", "anthropic", "scaleai",

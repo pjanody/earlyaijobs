@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { beginVisit, KEYS } from "../lib/local-state";
 
-const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit"];
+const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral"];
 
 export default function NewSinceBanner() {
   const [state, setState] = useState(null); // {count, since} when visible
