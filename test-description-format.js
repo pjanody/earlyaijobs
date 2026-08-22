@@ -124,5 +124,15 @@ check("existing real headings untouched", () => {
   if (!out.startsWith("<h2>About the role</h2>")) throw new Error(out);
 });
 
+check("plain-text known headings promoted (OpenAI 'About the Team')", () => {
+  const out = promoFidelity("<p>About the Team</p><p>Our team brings products to the world.</p><p>About the Role</p><p>You will lead things.</p>");
+  if (!out.includes("<h2>About the Team</h2>") || !out.includes("<h2>About the Role</h2>")) throw new Error(out);
+});
+
+check("plain short sentences NOT promoted without colon or known title", () => {
+  const out = promoFidelity("<p>Join our mission today</p><p>We build useful things.</p>");
+  if (out.includes("<h2>")) throw new Error(`short sentence promoted: ${out}`);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

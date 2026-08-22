@@ -3,6 +3,8 @@ import {
   WIDE_LOGOS, displayLocation, employmentLabel, timeAgo, isFresh,
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
+import SaveButton from "../../save-button";
+import RecordView from "../../record-view";
 
 export const revalidate = 600;
 
@@ -121,6 +123,7 @@ export default async function JobPage({ params }) {
 
   return (
     <div className="wrap detail">
+      <RecordView jobId={job.id} />
       {!isClosed && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       )}
@@ -173,7 +176,10 @@ export default async function JobPage({ params }) {
               </div>
             </div>
           ) : (
-            <div className="apply-inline">{applyCta}</div>
+            <div className="apply-inline apply-row">
+              {applyCta}
+              <SaveButton jobId={job.id} size="detail" />
+            </div>
           )}
 
           {(() => {
@@ -208,6 +214,9 @@ export default async function JobPage({ params }) {
             <div className="side-card apply-card">
               <h2>Apply now</h2>
               {applyCta}
+              <div style={{ marginTop: 8 }}>
+                <SaveButton jobId={job.id} size="detail" />
+              </div>
               <p>You&apos;ll continue on {company}&apos;s official careers site.</p>
             </div>
           )}

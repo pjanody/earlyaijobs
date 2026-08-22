@@ -209,6 +209,56 @@ header.site {
   font-weight: 600;
 }
 
+/* ---------- saved jobs ---------- */
+.save-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-width: 40px; min-height: 40px; padding: 8px;
+  background: transparent; border: 0; border-radius: 8px; cursor: pointer;
+  color: var(--text-muted); transition: color .12s, background .12s;
+}
+.save-btn:hover { color: var(--sage); background: var(--surface-raised); }
+.save-btn.on { color: var(--sage); }
+.save-btn.detail {
+  border: 1px solid var(--border); padding: 9px 16px;
+  font-size: 13.5px; font-weight: 600; color: var(--text-secondary);
+}
+.save-btn.detail:hover { border-color: var(--sage); }
+.save-btn.detail.on { color: var(--sage); border-color: var(--sage); }
+.save-slot { flex-shrink: 0; display: inline-flex; }
+.apply-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+.tag-closed {
+  color: var(--text-muted) !important; border-style: dashed !important;
+}
+.saved-missing { align-items: center; color: var(--text-muted); }
+.saved-missing p { margin: 0; font-size: 13.5px; }
+.saved-empty { padding: 30px 0; }
+.saved-empty h2 { font-size: 17px; margin-bottom: 6px; }
+.saved-empty p { color: var(--text-secondary); margin-bottom: 16px; }
+.saved-section-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 34px 0 10px;
+}
+.saved-section-head h2 { font-size: 15px; }
+.saved-note { margin-top: 26px; color: var(--text-muted); font-size: 12.5px; }
+button.chip { cursor: pointer; font-family: inherit; }
+
+/* ---------- new-since-last-visit banner ---------- */
+.new-since-banner {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 10px 14px;
+  border: 1px solid var(--sage); border-radius: var(--radius);
+  background: color-mix(in srgb, var(--sage) 8%, transparent);
+  font-size: 13.5px; color: var(--text);
+}
+.new-since-banner b { color: var(--sage); }
+.new-since-banner a { color: var(--sage); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.new-since-banner button {
+  margin-left: auto; background: none; border: 0; cursor: pointer;
+  color: var(--text-muted); font-size: 17px; line-height: 1; padding: 4px 6px;
+}
+.new-since-banner button:hover { color: var(--text); }
+
 /* ---------- active filter chips ---------- */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
 .chip {

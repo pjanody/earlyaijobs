@@ -1,5 +1,6 @@
 import "./globals.css";
 import ThemeToggle from "./theme-toggle";
+import SavedCount from "./saved-count";
 
 export const metadata = {
   // www is the canonical host (the apex redirects to it); every absolute URL
@@ -50,6 +51,7 @@ export default function RootLayout({ children }) {
             <nav className="nav">
               <a href="/">Jobs</a>
               <a href="/companies">Companies</a>
+              <SavedCount />
               <a href="/about">About</a>
               <ThemeToggle />
             </nav>

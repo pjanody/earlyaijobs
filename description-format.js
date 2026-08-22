@@ -95,9 +95,17 @@ function promoteHeadings(html) {
     // Whole paragraph is one bold run: <p><strong>Pay Range Transparency</strong></p>
     .replace(/<p>\s*<(strong|b)>([^<]+)<\/\1>\s*<\/p>/gi, (m, tag, text) =>
       isHeadingText(text) ? `<h2>${text.trim()}</h2>` : m)
-    // Plain short line ending in a colon: <p>The impact you will have:</p>
-    .replace(/<p>([^<]+)<\/p>/gi, (m, text) =>
-      isHeadingText(text) && text.trim().endsWith(":") ? `<h2>${text.trim()}</h2>` : m);
+    // Plain paragraph: promoted ONLY if it ends in a colon ("The impact you
+    // will have:") or is a known section title ("About the Team" — some
+    // OpenAI postings emit these as bare text). The short-line fallback that
+    // bold paragraphs get is deliberately NOT applied here: without bold or
+    // a colon, a short plain line is too often just a short sentence.
+    .replace(/<p>([^<]+)<\/p>/gi, (m, text) => {
+      const t = text.trim();
+      if (!isHeadingText(t)) return m;
+      const bare = t.replace(/:$/, "").replace(/[’]/g, "'").toLowerCase();
+      return t.endsWith(":") || KNOWN_HEADINGS.has(bare) ? `<h2>${t}</h2>` : m;
+    });
 }
 
 module.exports = {

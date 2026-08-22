@@ -1,8 +1,10 @@
+import SaveButton from "./save-button";
+import NewSinceBanner from "./new-since-banner";
 import {
   getJobs, getCategoryCounts, getCompanyCounts, getCountryCounts, getTotalCount,
   getFreshCount, getRemoteCount, getLastUpdated, CATEGORY_LABELS, COMPANY_LABELS,
   COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, POSTED_WINDOWS,
-  displayLocation, timeAgo, freshness,
+  displayLocation, validSince, timeAgo, freshness,
 } from "../lib/db";
 
 // Auto-submit the filter form when a control changes (falls back to the Apply
@@ -34,12 +36,13 @@ export default async function Home({ searchParams }) {
   const remote = sp?.remote || "";
   const country = sp?.country || "";
   const posted = POSTED_WINDOWS[sp?.posted] ? sp.posted : "";
+  const since = validSince(sp?.since) ? sp.since : "";
   const q = sp?.q || "";
   const page = Math.max(1, Number(sp?.page) || 1);
 
   const [{ jobs, total }, catCounts, coCounts, countryCounts, totalAll, freshCount, remoteCount, lastUpdated] =
     await Promise.all([
-      getJobs({ category, company, remote, country, posted, q, page }),
+      getJobs({ category, company, remote, country, posted, since, q, page }),
       getCategoryCounts(),
       getCompanyCounts(),
       getCountryCounts(),
@@ -59,17 +62,18 @@ export default async function Home({ searchParams }) {
   const sortedRegions = Object.entries(countryCounts.regions)
     .filter(([code]) => REGION_LABELS[code])
     .sort((a, b) => b[1] - a[1]);
-  const hasFilters = Boolean(category || company || remote === "1" || country || posted || q);
+  const hasFilters = Boolean(category || company || remote === "1" || country || posted || since || q);
 
   // Active-filter chips: each links to the same view with that one filter
   // removed, so removal is plain navigation — no client state.
   const chips = [
-    company && { label: COMPANY_LABELS[company] || company, href: qs({ category, q, remote, country, posted }) },
-    category && { label: CATEGORY_LABELS[category] || category, href: qs({ company, q, remote, country, posted }) },
-    country && { label: REGION_LABELS[country] || COUNTRY_LABELS[country] || country, href: qs({ category, company, q, remote, posted }) },
-    remote === "1" && { label: "Remote", href: qs({ category, company, q, country, posted }) },
-    posted && { label: POSTED_WINDOWS[posted], href: qs({ category, company, q, remote, country }) },
-    q && { label: `“${q}”`, href: qs({ category, company, remote, country, posted }) },
+    company && { label: COMPANY_LABELS[company] || company, href: qs({ category, q, remote, country, posted, since }) },
+    category && { label: CATEGORY_LABELS[category] || category, href: qs({ company, q, remote, country, posted, since }) },
+    country && { label: REGION_LABELS[country] || COUNTRY_LABELS[country] || country, href: qs({ category, company, q, remote, posted, since }) },
+    remote === "1" && { label: "Remote", href: qs({ category, company, q, country, posted, since }) },
+    posted && { label: POSTED_WINDOWS[posted], href: qs({ category, company, q, remote, country, since }) },
+    since && { label: "New since last visit", href: qs({ category, company, q, remote, country, posted }) },
+    q && { label: `“${q}”`, href: qs({ category, company, remote, country, posted, since }) },
   ].filter(Boolean);
 
   return (
@@ -118,14 +122,14 @@ export default async function Home({ searchParams }) {
             <summary>Filters{hasFilters ? " · active" : ""}</summary>
             <div className="filters-body">
               <h3>Company</h3>
-              <a className={!company ? "on" : ""} href={qs({ category, q, remote, country, posted })}>
+              <a className={!company ? "on" : ""} href={qs({ category, q, remote, country, posted, since })}>
                 All companies <span className="n">{totalAll}</span>
               </a>
               {sortedCos.map(([slug, n]) => (
                 <a
                   key={slug}
                   className={company === slug ? "on" : ""}
-                  href={qs({ company: company === slug ? "" : slug, category, q, remote, country, posted })}
+                  href={qs({ company: company === slug ? "" : slug, category, q, remote, country, posted, since })}
                 >
                   {COMPANY_LABELS[slug] || slug} <span className="n">{n}</span>
                 </a>
@@ -134,6 +138,7 @@ export default async function Home({ searchParams }) {
               <form id="filter-form" className="filter-form" action="/" method="get">
                 {q && <input type="hidden" name="q" value={q} />}
                 {company && <input type="hidden" name="company" value={company} />}
+                {since && <input type="hidden" name="since" value={since} />}
 
                 <h3><label htmlFor="f-category">Category</label></h3>
                 <select id="f-category" name="category" defaultValue={category}>
@@ -187,12 +192,15 @@ export default async function Home({ searchParams }) {
         </aside>
 
         <main>
+          <NewSinceBanner />
+
           <form className="search" action="/" method="get">
             {category && <input type="hidden" name="category" value={category} />}
             {company && <input type="hidden" name="company" value={company} />}
             {remote && <input type="hidden" name="remote" value={remote} />}
             {country && <input type="hidden" name="country" value={country} />}
             {posted && <input type="hidden" name="posted" value={posted} />}
+            {since && <input type="hidden" name="since" value={since} />}
             <input
               type="search"
               name="q"
@@ -265,6 +273,7 @@ export default async function Home({ searchParams }) {
                     {job.is_remote === true && <span className="tag tag-remote">Remote</span>}
                   </div>
                 </div>
+                <span className="save-slot"><SaveButton jobId={job.id} /></span>
                 {when && (
                   <span className={`when ${state}`}>
                     {state === "new" ? `NEW · ${when}` : when}
@@ -277,12 +286,12 @@ export default async function Home({ searchParams }) {
           {lastPage > 1 && (
             <div className="pager">
               {page > 1 ? (
-                <a href={qs({ category, company, q, remote, country, posted })} title="First page">« First</a>
+                <a href={qs({ category, company, q, remote, country, posted, since })} title="First page">« First</a>
               ) : (
                 <span className="disabled">« First</span>
               )}
               {page > 1 ? (
-                <a href={qs({ category, company, q, remote, country, posted, page: page - 1 })}>← Previous</a>
+                <a href={qs({ category, company, q, remote, country, posted, since, page: page - 1 })}>← Previous</a>
               ) : (
                 <span className="disabled">← Previous</span>
               )}
@@ -290,7 +299,7 @@ export default async function Home({ searchParams }) {
                 Page {page} of {lastPage}
               </span>
               {page < lastPage ? (
-                <a href={qs({ category, company, q, remote, country, posted, page: page + 1 })}>Next →</a>
+                <a href={qs({ category, company, q, remote, country, posted, since, page: page + 1 })}>Next →</a>
               ) : (
                 <span className="disabled">Next →</span>
               )}

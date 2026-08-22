@@ -90,6 +90,14 @@ const TITLE_RULES = {
     "solutions architect", "solution architect", "applied ai architect", "ai architect",
     "solutions engineer", "solution engineer", "forward deployed", "technical consultant",
     "implementation consultant", "solutions consultant", "applied ai engineer",
+    // "Forward Deployed Software Engineer" lost to "software engineer" (16
+    // chars vs 15) and landed in Engineering, while "Sr. Forward Deployed
+    // Engineer" correctly landed in Solutions — the same job family split
+    // across two categories. Longer explicit phrases keep the family together.
+    "forward deployed software engineer", "forward deployed engineer",
+    "forward deployed security engineer", "forward deployed product designer",
+    "forward deployed product manager", "forward deployed data scientist",
+    "forward deployed architect", "forward deployed",
     "technical account", "professional services",
     // Customer-facing deployment/consulting roles (4 in the 500 sample).
     "deployment strategist", "delivery consultant", "engagement manager",
@@ -131,6 +139,8 @@ const TITLE_RULES = {
     // first). Longer phrases break the tie deterministically.
     "marketing manager", "social marketing", "marketing lead", "marketing director",
     "head of marketing", "field marketer", "events lead",
+    // "Marketing Operations" was landing in Operations.
+    "marketing operations", "enterprise marketing", "product marketing manager",
     "brand marketing", "marketing", "copywriter", "copy lead", "editor", "social media",
     "events", "community manager",
     // Growth/field marketing titles found in the production run.
@@ -172,6 +182,11 @@ const TITLE_RULES = {
     // is a policy role, not a designer.
     "policy design", "policy manager", "policy lead", "policy planning",
     "policy analyst", "policy research",
+    // Policy roles that lost to a longer word from another category:
+    //   "Policy Communications Manager" → communication (marketing)
+    //   "National Security Policy, Senior Manager" → security
+    "policy communications", "national security policy", "security policy",
+    "policy & partnerships", "policy and partnerships", "public policy",
   ],
   people: [
     "recruiter", "recruiting", "talent acquisition", "people operations",
@@ -191,6 +206,12 @@ const TITLE_RULES = {
     // Finance-process titles that must not resolve elsewhere.
     "accounts receivable", "accounts payable", "collections", "credit risk",
     "cash application", "technical accounting", "revenue recognition",
+    // Finance titles that were losing to a longer word from another category:
+    //   "Tax Director, Provision & Compliance" → compliance (legal)
+    //   "Director, Infrastructure Supply Chain Accounting" → supply chain (ops)
+    //   "Payroll Tax Manager" → payroll (people)
+    "tax director", "tax manager", "tax provision", "payroll tax",
+    "supply chain accounting", "revenue accounting", "accounting manager",
     "consolidations", "financial risk", "pricing strategist", "travel & expense",
   ],
   education: [
@@ -200,6 +221,8 @@ const TITLE_RULES = {
     // now requires genuinely educational phrases.
     "curriculum", "instructional designer", "learning and development",
     "education lead", "training lead", "educator", "teacher",
+    // "Education Program Manager" was losing to "program manager" (operations).
+    "education program", "education manager",
     "learning designer", "training program", "academy",
   ],
 };
@@ -376,13 +399,18 @@ async function main() {
 
   const counts = {};
   const otherTitles = [];
+  // Transition tracking: what would this run CHANGE? In dry-run mode this is
+  // the pre-write diff report; in write mode it documents what was done.
+  const transitions = {};          // "old → new" -> count
+  const changedSamples = [];       // up to 30 example rows
+  let unchanged = 0, changed = 0;
   let processed = 0, afterId = 0;
 
   while (processed < limit) {
     const pageSize = Math.min(500, limit === Infinity ? 500 : limit - processed);
     let q = supabase
       .from("jobs")
-      .select("id, title, company_name, description")
+      .select("id, title, company_name, description, category")
       .eq("is_open", true)
       .gt("id", afterId)
       .order("id", { ascending: true })
@@ -397,6 +425,18 @@ async function main() {
       const { category, source } = classify(job);
       counts[category] = (counts[category] || 0) + 1;
       if (category === "other") otherTitles.push(`${String(job.company_name).padEnd(13)} | ${job.title}`);
+
+      const oldCat = job.category || "(none)";
+      if (oldCat === category) {
+        unchanged++;
+      } else {
+        changed++;
+        const key = `${oldCat} → ${category}`;
+        transitions[key] = (transitions[key] || 0) + 1;
+        if (changedSamples.length < 30) {
+          changedSamples.push(`  ${key.padEnd(36)} [${job.id}] ${String(job.company_name).padEnd(11)} ${String(job.title).slice(0, 52)}`);
+        }
+      }
       console.log(`${category.padEnd(17)} | ${String(job.company_name).padEnd(13)} | ${job.title}`);
 
       if (write) {
@@ -417,6 +457,21 @@ async function main() {
 
   console.log(`\n=== SUMMARY ===`);
   console.log(`Jobs classified: ${processed}${write ? " (written)" : " (dry run)"}\n`);
+
+  // The pre-write safety report: exactly what this run changes vs the
+  // categories currently in the database. Inspect BEFORE running --write.
+  console.log(`=== TRANSITION REPORT (vs current database values) ===`);
+  console.log(`Unchanged: ${unchanged}`);
+  console.log(`Changed:   ${changed}${write ? "  (these WERE written)" : "  (these WOULD be written)"}`);
+  if (changed > 0) {
+    console.log(`\nCategory transitions:`);
+    for (const [key, n] of Object.entries(transitions).sort((a, b) => b[1] - a[1])) {
+      console.log(`  ${String(n).padStart(5)}  ${key}`);
+    }
+    console.log(`\nSample changed jobs (up to 30):`);
+    for (const line of changedSamples) console.log(line);
+  }
+  console.log("");
   for (const [cat, n] of Object.entries(counts).sort((a, b) => b[1] - a[1])) {
     const pct = ((n / processed) * 100).toFixed(1);
     console.log(`  ${cat.padEnd(17)} ${String(n).padStart(5)}  ${pct}%`);

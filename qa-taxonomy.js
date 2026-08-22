@@ -46,17 +46,37 @@ async function fetchAll() {
   return out;
 }
 
-// Strip location suffixes so "Incident Manager, Zürich" and "Incident
-// Manager, San Francisco" compare as the same role.
+// Strip GEOGRAPHIC suffixes only, so "Incident Manager, Zürich" and "Incident
+// Manager, San Francisco" compare equal — while "Director, Sales" and
+// "Director, Marketing" stay distinct.
+//
+// v1 of this script stripped ANY trailing ", phrase", which collapsed 23
+// different Databricks director roles into one bogus "director" group and
+// reported them as inconsistent. Geography-only stripping fixes that.
+const { CITIES, COUNTRY_NAMES, US_STATES, CA_PROVINCES, REGION_TOKENS } = require("./location-parser");
+
+const GEO_WORDS = new Set([
+  ...Object.keys(CITIES || {}), ...Object.keys(COUNTRY_NAMES || {}),
+  ...Object.keys(US_STATES || {}), ...Object.keys(CA_PROVINCES || {}),
+  ...Object.keys(REGION_TOKENS || {}),
+  "emea", "apac", "amer", "americas", "latam", "anz", "dach", "benelux",
+  "us", "usa", "uk", "eu", "global", "worldwide", "remote", "sf", "nyc",
+  "north america", "south america", "middle east", "asia", "europe",
+]);
+
+// Accent-fold so "Zürich" matches the dictionary's "zurich".
+const fold = (s) => String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const isGeo = (s) => GEO_WORDS.has(fold(s).replace(/[^a-z ]/g, "").trim());
+
 function normaliseTitle(title) {
-  return String(title || "")
-    .toLowerCase()
-    .replace(/[–—-]\s*[a-z .'’]+$/i, "")   // trailing " - EMEA", " — Zurich"
-    .replace(/,\s*[a-z .'’]+$/i, "")        // trailing ", San Francisco"
-    .replace(/\(.*?\)/g, " ")
-    .replace(/[^a-z0-9 &]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  let t = fold(title).replace(/\(.*?\)/g, " ").trim();
+  // Peel geographic suffixes repeatedly: "Lead - Sales - EMEA" → "lead - sales"
+  for (let i = 0; i < 3; i++) {
+    const m = t.match(/^(.*?)[,–—-]\s*([\p{L} .'’&]+)$/u);
+    if (!m || !isGeo(m[2])) break;
+    t = m[1].trim();
+  }
+  return t.replace(/[^a-z0-9 &]/g, " ").replace(/\s+/g, " ").trim();
 }
 
 async function main() {
