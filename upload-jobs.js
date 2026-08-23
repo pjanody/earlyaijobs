@@ -7,7 +7,7 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 // EarlyAIJobs lists jobs at AI companies, so we collect only from those.
 // Adding a company later is one line: put its ATS slug in the right list and
 // the next run collects it — no migration, no backfill, nothing else to change.
-const greenhouseCompanies = ["anthropic", "databricks", "scaleai", "figureai", "coreweave"];
+const greenhouseCompanies = ["anthropic", "databricks", "scaleai", "figureai", "coreweave", "togetherai"];
 const leverCompanies = [];
 // An entry is either a plain slug (board slug === our company name) or
 // { slug, name } when they differ — Mistral's Ashby board is "mistral.ai"
@@ -17,6 +17,7 @@ const ashbyCompanies = [
   "openai", "elevenlabs", "replit",
   "cohere", "perplexity", "cursor", "cognition",
   { slug: "mistral.ai", name: "mistral" },
+  "sierra", "harvey",
 ];
 
 // Previously tracked, kept for reference should the scope ever widen:

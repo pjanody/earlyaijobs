@@ -19,7 +19,7 @@
 
 const { createClient } = require("@supabase/supabase-js");
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave"];
+const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave", "togetherai", "sierra", "harvey"];
 
 // Jobs named in external reviews — printed with their canonical DB values.
 const CITED = [383676, 383677, 383678, 360018, 360019, 383589, 16332, 356889, 364968];

@@ -16,7 +16,7 @@ const { createClient } = require("@supabase/supabase-js");
 const { parseLocation, detectWorkplaceFromDescription, DESC_RULES } = require("./location-parser");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave"];
+const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave", "togetherai", "sierra", "harvey"];
 const pct = (n, d) => (d ? `${((n / d) * 100).toFixed(1)}%` : "—");
 
 // Descriptions are stored in full now, so a 1,000-row page can be many MB and

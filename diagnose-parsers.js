@@ -17,7 +17,7 @@ const { parseLocation } = require("./location-parser");
 const { detectPostingLanguage, SUPPORTED_LANGUAGES } = require("./language-parser");
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
-const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave"];
+const APPROVED = ["openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit", "cohere", "perplexity", "cursor", "cognition", "mistral", "figureai", "coreweave", "togetherai", "sierra", "harvey"];
 
 const tally = (obj, key) => { obj[key] = (obj[key] || 0) + 1; };
 const pct = (n, total) => `${((n / total) * 100).toFixed(1)}%`;

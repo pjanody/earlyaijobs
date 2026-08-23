@@ -23,6 +23,7 @@ const COMPANY_LABELS = {
   cohere: "Cohere", perplexity: "Perplexity", cursor: "Cursor",
   cognition: "Cognition", mistral: "Mistral AI",
   figureai: "Figure AI", coreweave: "CoreWeave",
+  togetherai: "Together AI", sierra: "Sierra", harvey: "Harvey",
 };
 const CATEGORY_LABELS = {
   engineering: "Engineering", research: "Research", data: "Data", product: "Product",
