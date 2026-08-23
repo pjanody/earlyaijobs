@@ -36,7 +36,8 @@ export default async function About() {
           are refreshed continuously, then sorted newest first — so you can
           discover roles while they&apos;re still fresh. When you find
           something, we send you straight to the employer&apos;s own application
-          page. EarlyAIJobs never collects your details and never charges you.
+          page. EarlyAIJobs never receives your resume or application —
+          everything is handled directly with the employer — and never charges you.
         </p>
 
         <h2>Companies we track</h2>
@@ -72,10 +73,8 @@ export default async function About() {
         <h2>Who made it</h2>
         <p>
           EarlyAIJobs was built by Patrick Janody, a community and account
-          manager — not a software engineer — as a way to learn modern tooling by
-          shipping something real, and to solve a problem he had himself: finding
-          non-engineering roles at AI companies without wading through listings
-          aimed at ML researchers.
+          manager who wanted a better way to find non-engineering roles at AI
+          companies without wading through listings aimed at ML researchers.
         </p>
 
         <p style={{ marginTop: 28 }}>

@@ -113,14 +113,21 @@ export default async function CompanyPage({ params }) {
       </section>
 
       <div className="wrap" style={{ paddingTop: 26 }}>
-        <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Jobs by category</h3>
-        <div className="meta" style={{ flexWrap: "wrap", gap: 8 }}>
-          {sortedCats.map(([cat, n]) => (
-            <a key={cat} className="tag" href={`/?company=${slug}&category=${cat}`}>
-              {CATEGORY_LABELS[cat] || cat} {n}
-            </a>
-          ))}
-        </div>
+        {/* Never render a heading with nothing under it. When newly-added
+            companies haven't been classified yet, an empty "Jobs by category"
+            section reads as a broken feature rather than a pending one. */}
+        {sortedCats.length > 0 && (
+          <>
+            <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Jobs by category</h3>
+            <div className="meta" style={{ flexWrap: "wrap", gap: 8 }}>
+              {sortedCats.map(([cat, n]) => (
+                <a key={cat} className="tag" href={`/?company=${slug}&category=${cat}`}>
+                  {CATEGORY_LABELS[cat] || cat} {n}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
 
         <h3 style={{ fontSize: 14, margin: "30px 0 4px" }}>Latest jobs</h3>
         {jobs.map((job) => {

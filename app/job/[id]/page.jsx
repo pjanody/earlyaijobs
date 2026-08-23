@@ -1,6 +1,7 @@
 import {
   getJob, getSimilarJobs, CATEGORY_LABELS, COMPANY_LABELS, COMPANY_LOGOS,
-  WIDE_LOGOS, displayLocation, employmentLabel, timeAgo, isFresh,
+  WIDE_LOGOS, displayLocation, employmentLabel, safeApplyUrl, COMPANY_WEBSITES,
+  timeAgo, isFresh,
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 import SaveButton from "../../save-button";
@@ -114,11 +115,16 @@ export default async function JobPage({ params }) {
     url: pageUrl,
   };
 
-  const applyCta = (
-    <a className="apply" href={job.url} target="_blank" rel="noopener noreferrer">
+  // Feed-supplied URLs are untrusted: only known ATS/company hosts become an
+  // Apply link. If a URL ever fails validation we send people to the company's
+  // own careers site rather than somewhere unexpected.
+  const applyUrl = safeApplyUrl(job.url) || COMPANY_WEBSITES[job.company_name] || null;
+
+  const applyCta = applyUrl ? (
+    <a className="apply" href={applyUrl} target="_blank" rel="noopener noreferrer">
       Apply on {company}&apos;s site ↗
     </a>
-  );
+  ) : null;
 
   return (
     <div className="wrap detail">
@@ -284,7 +290,7 @@ export default async function JobPage({ params }) {
           card is sticky there) and on closed roles. */}
       {!isClosed && (
         <div className="mobile-apply-bar">
-          <a href={job.url} target="_blank" rel="noopener noreferrer">
+          <a href={applyUrl} target="_blank" rel="noopener noreferrer">
             Apply on {company}&apos;s site ↗
           </a>
         </div>
