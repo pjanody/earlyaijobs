@@ -324,7 +324,7 @@ form.search button:hover { background: var(--accent-hover); }
 .job > .when { flex-shrink: 0; margin-left: auto; white-space: nowrap; }
 @media (max-width: 560px) {
   .job { align-items: flex-start; flex-wrap: wrap; }
-  .job > .when { margin-left: 60px; margin-top: 2px; }
+  .job > .when { margin-left: 78px; margin-top: 2px; } /* aligns under the uniform wide tile */
 }
 .job h2 {
   font-size: 15.5px; font-weight: 600; letter-spacing: -0.012em; color: var(--text);
@@ -354,24 +354,22 @@ form.search button:hover { background: var(--accent-hover); }
    Always a light tile: several official marks are black wordmarks that would
    be invisible on the dark background. A soft off-white tile keeps every
    company legible in both themes without per-logo special-casing. */
+/* ONE tile size for every company, everywhere (Patrick's standardization
+   call, 2026-08-23). Square glyphs center inside the same landscape tile the
+   wordmarks use — uniform beats per-logo special-casing. The .wide class is
+   retained in markup but no longer changes anything. */
 .logo {
-  width: 46px; height: 46px; flex-shrink: 0;
+  width: 84px; height: 46px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: #ffffff; border: 1px solid var(--border);
-  border-radius: 9px; overflow: hidden; padding: 7px;
+  border-radius: 9px; overflow: hidden; padding: 6px 9px;
 }
 .logo img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
-.logo.lg { width: 62px; height: 62px; border-radius: 12px; padding: 9px; }
-
-/* Wordmark logos get a landscape tile so they aren't reduced to a sliver
-   inside a square. */
-.logo.wide { width: 84px; padding: 8px 10px; }
-.logo.wide.lg { width: 116px; }
+.logo.lg { width: 116px; height: 62px; border-radius: 12px; padding: 8px 12px; }
+.logo.wide, .logo.wide.lg { /* unified — kept so existing markup needs no change */ }
 @media (max-width: 480px) {
-  .logo { width: 38px; height: 38px; padding: 5px; }
-  .logo.wide { width: 66px; }
-  .logo.lg { width: 50px; height: 50px; }
-  .logo.wide.lg { width: 92px; }
+  .logo { width: 64px; height: 36px; padding: 4px 7px; }
+  .logo.lg { width: 88px; height: 48px; }
 }
 
 /* ---------- pagination ---------- */
