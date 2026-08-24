@@ -56,6 +56,12 @@ async function main() {
   // same deterministic module the backfill used, no AI, no drift.
   await run("normalize-new-jobs.js");
 
+  // Tell Google what changed (Indexing API). Deliberately LAST and deliberately
+  // allowed to fail: our data is already written, and notify-google.js exits 0
+  // even on total failure — a Google outage must never mark the pipeline red.
+  // Without GOOGLE_INDEXING_KEY set it logs one line and does nothing.
+  await run("notify-google.js", ["--send"]);
+
   const mins = ((Date.now() - started) / 60000).toFixed(1);
   console.log(`\n[pipeline] cycle complete in ${mins} min — exiting cleanly.`);
 }
