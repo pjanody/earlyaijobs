@@ -55,9 +55,9 @@ function shortLocation(raw) {
 /** Long titles shrink before they truncate; truly absurd ones get an ellipsis. */
 function titleSize(title) {
   const len = title.length;
-  if (len <= 45) return 64;
-  if (len <= 80) return 52;
-  return 44;
+  if (len <= 45) return 72;
+  if (len <= 80) return 58;
+  return 48;
 }
 
 export default async function Image({ params }) {
@@ -80,11 +80,8 @@ export default async function Image({ params }) {
       >
         {/* Brand row */}
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: "#e8edf2" }}>
+          <div style={{ display: "flex", fontSize: 44, fontWeight: 800, color: "#e8edf2" }}>
             Early<span style={{ color: "#7fb069" }}>AI</span>Jobs
-          </div>
-          <div style={{ display: "flex", fontSize: 22, color: "#8b96a5", marginTop: 6 }}>
-            · jobs at AI companies, found early
           </div>
         </div>
 
@@ -99,7 +96,7 @@ export default async function Image({ params }) {
             {title}
           </div>
           {(company || location) && (
-            <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 30, color: "#aeb9c6" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 38, color: "#c6d0da" }}>
               {company && <span style={{ color: "#9ccc84", fontWeight: 600 }}>{company}</span>}
               {company && location && <span style={{ color: "#4a5461" }}>·</span>}
               {location && <span>{location}</span>}
@@ -109,14 +106,14 @@ export default async function Image({ params }) {
 
         {/* Footer row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", fontSize: 22, color: "#8b96a5" }}>
-            Apply directly on the employer's site — updated hourly
+          <div style={{ display: "flex", fontSize: 28, color: "#aeb9c6" }}>
+            Apply directly on the employer's site
           </div>
           <div
             style={{
               display: "flex", padding: "10px 26px", borderRadius: 999,
-              border: "2px solid #7fb069", color: "#9ccc84",
-              fontSize: 24, fontWeight: 600,
+              border: "3px solid #7fb069", color: "#9ccc84",
+              fontSize: 30, fontWeight: 700,
             }}
           >
             www.earlyaijobs.com
