@@ -19,22 +19,49 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SER
 
 const CLASSIFIER_VERSION = "simple-1.1";
 
-// Approved AI companies for launch. Every open job from these companies is
-// listed on the website; the classifier only assigns a category.
-// (2026-08-23: mistral and cohere are BACK — both resurfaced on Ashby and
-// were re-added in batch 2 alongside perplexity, cursor, and cognition.)
-// Historical note: both previously left Lever and at that time returned
-// no open jobs. Revisit once their current ATS platform is identified.
+// Approved AI companies. Every open job from these companies is listed on the
+// website; the classifier only assigns a category.
+//
+// THIS LIST MUST MATCH lib/db.js. It didn't on 2026-08-23: the site had grown
+// to 16 companies but this file still said 6, so `--approved` silently skipped
+// 1,630 jobs and they stayed uncategorised even after a full --write run. The
+// assertion below now makes that drift impossible to miss.
 const APPROVED_COMPANIES = [
-  "openai", "anthropic", "scaleai",
-  "elevenlabs", "databricks", "replit",
+  "openai", "anthropic", "scaleai", "elevenlabs", "databricks", "replit",
+  "cohere", "perplexity", "cursor", "cognition", "mistral",
+  "figureai", "coreweave", "togetherai", "sierra", "harvey",
 ];
+
+// Drift guard. lib/db.js is an ES module and this script is CommonJS, so we
+// can't require() it — instead we read the source and compare the two lists.
+// Cheap, deterministic, and it fails loudly BEFORE anything is written.
+(function assertCompanyListsMatch() {
+  const fs = require("fs");
+  const path = require("path");
+  let src;
+  try {
+    src = fs.readFileSync(path.join(__dirname, "lib", "db.js"), "utf8");
+  } catch {
+    return; // db.js unreadable (e.g. running outside the repo) — don't block.
+  }
+  const m = src.match(/export const APPROVED_COMPANIES\s*=\s*\[([\s\S]*?)\]/);
+  if (!m) return;
+  const site = (m[1].match(/"([^"]+)"/g) || []).map((s) => s.replace(/"/g, ""));
+  const mine = [...APPROVED_COMPANIES].sort().join(",");
+  if (site.length && site.slice().sort().join(",") !== mine) {
+    console.error("STOPPED: company list drift between classify-simple.js and lib/db.js");
+    console.error(`  lib/db.js         (${site.length}): ${site.join(", ")}`);
+    console.error(`  classify-simple.js (${APPROVED_COMPANIES.length}): ${APPROVED_COMPANIES.join(", ")}`);
+    console.error("  Fix the lists so they match, then re-run. Nothing was written.");
+    process.exit(1);
+  }
+})();
 
 const CATEGORIES = [
   "engineering", "research", "data", "product", "design", "infrastructure",
   "security", "solutions", "sales", "marketing", "customer-success",
   "operations", "legal-compliance", "policy", "people", "finance",
-  "education", "other",
+  "education", "manufacturing", "other",
 ];
 
 // Title rules. Longest/most specific phrases win — the list is scored by
@@ -63,10 +90,20 @@ const TITLE_RULES = {
     // and "Infrastructure Tax Lead" are finance roles, not technical ones.
     "evals infrastructure", "evaluation infrastructure", "training infrastructure",
     "ml infrastructure", "ai infrastructure", "serving infrastructure",
+    // Corporate IT / internal business systems. Harvey posts several of these
+    // ("Sr. Workday Integrations Analyst"). NOT included: a bare "director, it"
+    // rule — matching is plain substring, so it would also fire on "Director,
+    // Italy". Those two Harvey postings stay in Other rather than risk that.
+    "workday", "information technology", "it operations", "corporate it",
+    "enterprise applications", "corporate engineering", "servicenow",
   ],
   data: [
     "data scientist", "data engineer", "data analyst", "analytics engineer",
     "business intelligence", "analytics", "data science", "machine learning data",
+    // Perplexity names roles "Member of X Staff (specialism)". The
+    // parenthetical varies, so the family was splitting — "(Data Scientist)"
+    // matched, "(AI Builder)" fell through to Other.
+    "member of data staff",
   ],
   product: [
     "product manager", "product management", "product operations", "product ops",
@@ -75,6 +112,9 @@ const TITLE_RULES = {
   design: [
     "product designer", "ux designer", "ux researcher", "visual designer",
     "brand designer", "design lead", "art director", "designer", "design",
+    // Same Perplexity pattern: "Member of Creative Studio (Producer…)" went to
+    // Other while "(Web Designer…)" went to Marketing. One family, one home.
+    "member of creative studio",
   ],
   security: [
     "security engineer", "security analyst", "security architect", "cybersecurity",
@@ -112,6 +152,32 @@ const TITLE_RULES = {
     "adoption architect", "partner delivery",
     // Non-English: Japanese "solutions architect" (Databricks JP postings).
     "ソリューションアーキテクト",
+    // Sierra calls its forward-deployed role "Strategist, Agent Development"
+    // — 18 postings, all identical apart from the language they serve in.
+    // Matched on the full comma form only; a bare "agent development" rule
+    // would wrongly claim research and engineering roles elsewhere.
+    "strategist, agent development", "agent development strategist",
+    // Harvey's Practice Leads are legal domain experts who advise customers on
+    // deploying Harvey — customer-facing delivery, not in-house legal work.
+    "practice lead",
+    // ---- Forward-deployed collisions, round 3 (2026-08-23) ----
+    // Every one of these lost to a LONGER engineering phrase in the same
+    // title, splitting one job family across two categories:
+    //   "…Machine Learning Engineer"   (25) beat "forward deployed" (16)
+    //   "…Infrastructure Engineer"     (23) beat "forward deployed" (16)
+    //   "…Software Engineer"           (17) beat "forward deployed" (16)
+    //   "Member of Technical Staff"    (25) tied and won on list order
+    // The fix is always the same: spell out the full phrase so it is longest.
+    "forward deployed machine learning engineer",
+    "forward deployed infrastructure engineer",
+    "forward deployed ml engineer",
+    "forward deployed full-stack engineer", "forward deployed full stack engineer",
+    // Scale AI parenthesises it: "Senior Full-Stack Software Engineer,
+    // (Forward Deployed), GPS". The brackets make this 18 chars, beating
+    // "software engineer" at 17.
+    "(forward deployed)",
+    "member of technical staff (forward deployed",
+    "product management, forward deployed",
   ],
   sales: [
     "account executive", "sales development", "business development", "sales engineer",
@@ -124,7 +190,7 @@ const TITLE_RULES = {
     // Marketplace / partner-ecosystem roles landed in Other because no rule
     // claimed them. In this taxonomy partnerships live under Sales (GTM), so
     // that is where an ecosystem owner belongs — not the exception bucket.
-    "marketplace", "partner programs", "partner ecosystem", "partnerships",
+    "marketplace", "partner programs", "partner program", "partner ecosystem", "partnerships",
     "partner development", "channel partner", "alliances",
     "sales enablement", "gtm enablement", "partner enablement",
     "field enablement", "revenue enablement", "scale enablement",
@@ -148,13 +214,15 @@ const TITLE_RULES = {
     // Growth/field marketing titles found in the production run.
     "field marketer", "growth generalist", "growth manager", "growth lead",
     "lifecycle lead", "analyst relations", "brand protection",
+    // "Event Marketer" (Sierra) missed both "events" and "field marketer".
+    "event marketer", "competitive intelligence",
   ],
   "customer-success": [
     "customer success", "customer experience", "technical account manager",
     "customer support", "support engineer", "customer education", "onboarding specialist",
     // Product/user support roles (2 in the 500 sample).
     "product support", "support specialist", "support manager",
-    "customer enablement", "customer education",
+    "customer enablement", "customer education", "customer learning",
   ],
   operations: [
     "program manager", "project manager", "business operations", "strategy and operations",
@@ -165,6 +233,54 @@ const TITLE_RULES = {
     // functional phrase in the same title wins by length.
     "general manager", "production manager", "inventory manager",
     "supply chain", "strategic sourcing", "vendor manager", "crisis management",
+    // Harvey's business-strategy IC role; "strategy and operations" already
+    // covers the manager-level version.
+    "strategy associate",
+  ],
+  // Physical production and field-service work. Added 2026-08-23 when Figure AI
+  // arrived: it builds humanoid robots, so it posts factory-floor and field
+  // roles no software company has. Folding these into Operations would mean a
+  // job seeker filtering for program-manager work gets CNC Machinist results.
+  //
+  // The boundary: this category is for making, servicing, or physically
+  // operating hardware. Robotics ENGINEERING (designing the robot) stays in
+  // Engineering — "robotics engineer" is a longer, more specific phrase and
+  // wins the tie automatically.
+  manufacturing: [
+    // Assembly and machining.
+    //
+    // NOTE: the bare word "manufacturing" is deliberately NOT a rule. Tested
+    // against all 4,251 live titles it produced two false positives:
+    //   "Secure Manufacturing & Stealth Investigator" (OpenAI) — a security
+    //   investigations role, and "Manufacturing Test Engineer" — a degreed
+    //   engineering role that belongs in Engineering. Specific phrases only.
+    "manufacturing technician", "manufacturing associate", "manufacturing operator",
+    "manufacturing supervisor", "remanufacturing",
+    "machinist", "fabricator", "fabrication", "assembler",
+    "production associate", "production technician", "production operator",
+    "staging specialist", "test technician", "quality technician",
+
+    // Robot operation and field service — Figure's largest cluster
+    "humanoid robot", "robot operator", "robot pilot", "robot technician",
+    "robot service technician", "service technician", "field service",
+    "maintenance technician", "equipment technician",
+
+    // Data creators: people who physically operate robots to generate
+    // training data. Closer to the factory floor than to the Data category,
+    // which is analytics and data engineering.
+    "data creator", "data creators",
+
+    // Hardware supply and production planning. Deliberately NOT the bare
+    // phrase "supply manager" — only the explicit Figure title — so a
+    // generic procurement role elsewhere still lands in Operations.
+    "global supply manager", "material planning", "demand planner",
+    "logistics", "dispatch coordinator",
+
+    // Physical deployment sites where robots run at a customer location.
+    // NOT a bare "site lead" rule: it outscored "engineer" (9 vs 8) and pulled
+    // Perplexity's "Engineering Site Lead" out of Engineering. Figure names
+    // these sites explicitly, so match on that instead.
+    "commercial site team", "commercial launch team",
   ],
   "legal-compliance": [
     "counsel", "attorney", "lawyer", "paralegal", "legal", "compliance",
@@ -175,6 +291,19 @@ const TITLE_RULES = {
     "security counsel", "product counsel", "commercial counsel",
     "corporate counsel", "general counsel", "legal counsel", "privacy counsel",
     "employment counsel", "regulatory counsel", "litigation",
+    // Harvey's "Legal Engineer" family (27 postings). These are qualified
+    // lawyers who configure Harvey for law firms, not software engineers —
+    // but "engineer" (8) was claiming all of them for Engineering. Patrick's
+    // call, 2026-08-23: they are legal roles.
+    // "legal engineering manager" is spelled out because "engineering manager"
+    // (19) would otherwise beat "legal engineering" (17).
+    "legal engineer", "legal engineering", "legal engineering manager",
+    // A counsel is a legal role whatever its subject matter, but plain
+    // "counsel" (7) loses to longer domain phrases. Each collision has to be
+    // named explicitly — substring matching gives us no way to say "the word
+    // counsel always wins". Add to this list whenever the audit finds one.
+    "counsel, global supply chain", "counsel, capital markets",
+    "counsel, supply chain", "counsel, real estate", "counsel, procurement",
   ],
   policy: [
     "policy", "government affairs", "public affairs", "government relations",
@@ -195,6 +324,24 @@ const TITLE_RULES = {
     "people partner", "human resources", "hr ", "employee relations", "talent",
     "compensation and benefits", "payroll", "sourcer", "technical sourcer",
     "equity administration", "equity admin", "hrbp",
+    // "People Lead" and "People Business Partner" were not matched by the
+    // existing "people operations" / "people partner" phrases.
+    "people lead", "people business partner", "people systems",
+    // Harvey's benefits cluster: "Global Benefits and Leaves Analyst" matched
+    // nothing, because the only benefits phrase was "compensation and benefits".
+    "benefits and leaves", "benefits analyst", "global benefits",
+    // Qualified forms only: a bare "employee experience" rule (19 chars) beat
+    // "product manager" (15) and dragged Databricks' and CoreWeave's
+    // "Sr Product Manager, Employee Experience" out of Product.
+    "employee experience specialist", "employee experience partner",
+    "employee experience lead", "employee experience manager",
+    // Recruiting operations kept landing in Operations, because
+    // "operations manager" (18) and "program manager" (15) are longer than
+    // "recruiting" (10). Recruiting is a People function whatever the
+    // surrounding noun says.
+    "recruiting operations", "recruiting program", "recruiting technology",
+    "recruiting coordination", "university recruiting", "campus recruiting",
+    "recruiting solutions", "people research scientist",
   ],
   finance: [
     "chief financial officer", "cfo", "accountant", "accounting", "controller",
@@ -215,6 +362,10 @@ const TITLE_RULES = {
     "tax director", "tax manager", "tax provision", "payroll tax",
     "supply chain accounting", "revenue accounting", "accounting manager",
     "consolidations", "financial risk", "pricing strategist", "travel & expense",
+    // CoreWeave runs a large "Operations Accounting" team. The word
+    // "operations" (10) and "data center" (11) were beating "accounting" (10)
+    // and scattering accountants across Operations and Infrastructure.
+    "operations accounting", "accounting enablement", "finance systems engineer",
   ],
   education: [
     // NOTE: the bare word "enablement" used to live here and dragged every
@@ -226,6 +377,9 @@ const TITLE_RULES = {
     // "Education Program Manager" was losing to "program manager" (operations).
     "education program", "education manager",
     "learning designer", "training program", "academy",
+    // Harvey runs a law-school programme (Harvey for students). Both the
+    // manager and the campus ambassador belong to the same family.
+    "law school", "student ambassador",
   ],
 };
 

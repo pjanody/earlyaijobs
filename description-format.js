@@ -78,9 +78,30 @@ function textOfBlocks(blocks) {
 // Anything longer, or containing other content, is left alone.
 // ---------------------------------------------------------------------------
 
+// An applicant-tracking requisition code: "CSQ227R215", "R-12345", "JR102938".
+// Databricks emits one as a standalone bold paragraph at the top of every
+// posting, which the short-bold-line rule below happily promoted to an <h2> —
+// so the job page opened with a giant meaningless heading AND that code led
+// the "ON THIS PAGE" nav. It is employer metadata, not part of the job
+// description. Deliberately narrow: a SINGLE token, no spaces, containing at
+// least one digit and no lowercase letters. "Benefits" and "EEO" are unharmed;
+// so is any real heading, because real headings have spaces or lowercase.
+// Starts with a letter, uppercase and digits only, contains at least one
+// digit. The 5-character floor keeps short legitimate labels like "Q4" and
+// "L5" safe; every real requisition code is comfortably longer.
+const REFERENCE_CODE_RE = /^[A-Z][A-Z0-9-]*[0-9][A-Z0-9-]*$/;
+
+function isReferenceCode(text) {
+  const t = String(text || "").replace(/\s+/g, " ").trim().replace(/[.:]$/, "");
+  if (!t || /\s/.test(t)) return false;         // more than one word → prose
+  if (t.length < 5 || t.length > 24) return false;
+  return REFERENCE_CODE_RE.test(t);
+}
+
 function isHeadingText(text) {
   const t = String(text).replace(/\s+/g, " ").trim();
   if (!t || t.length > 70) return false;
+  if (isReferenceCode(t)) return false;         // "CSQ227R215" is not a heading
   if (/[.!?]\s/.test(t)) return false;          // contains a sentence break
   if (t.endsWith(".")) return false;            // is a sentence
   const bare = t.replace(/:$/, "").replace(/[’]/g, "'").toLowerCase();
@@ -90,8 +111,27 @@ function isHeadingText(text) {
   return t.split(/\s+/).length <= 7;
 }
 
-function promoteHeadings(html) {
+/**
+ * Remove paragraphs that contain NOTHING but an ATS requisition code.
+ *
+ * This is the one place the site deletes source text, and the rule that allows
+ * it is narrow on purpose: the paragraph must consist solely of a single
+ * code-shaped token. If there is a word beside it — "Requisition CSQ227R215",
+ * "Apply with code AB12" — nothing is removed. A code alone conveys nothing to
+ * a job seeker and it is not prose; it is the ATS's internal reference leaking
+ * into the description.
+ */
+function stripReferenceCodes(html) {
   return String(html || "")
+    .replace(/<p>\s*<(strong|b)>\s*([^<]+?)\s*<\/\1>\s*<\/p>/gi, (m, tag, text) =>
+      isReferenceCode(text) ? "" : m)
+    .replace(/<p>\s*([^<]+?)\s*<\/p>/gi, (m, text) => (isReferenceCode(text) ? "" : m))
+    .replace(/<h([1-6])>\s*([^<]+?)\s*<\/h\1>/gi, (m, level, text) =>
+      isReferenceCode(text) ? "" : m);
+}
+
+function promoteHeadings(html) {
+  return stripReferenceCodes(html)
     // Whole paragraph is one bold run: <p><strong>Pay Range Transparency</strong></p>
     .replace(/<p>\s*<(strong|b)>([^<]+)<\/\1>\s*<\/p>/gi, (m, tag, text) =>
       isHeadingText(text) ? `<h2>${text.trim()}</h2>` : m)
@@ -110,5 +150,5 @@ function promoteHeadings(html) {
 
 module.exports = {
   KNOWN_HEADINGS, lineKind, blocksOf, textOfBlocks, BULLET_RE,
-  isHeadingText, promoteHeadings,
+  isHeadingText, promoteHeadings, isReferenceCode, stripReferenceCodes,
 };

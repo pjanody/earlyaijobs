@@ -64,6 +64,110 @@ const CASES = [
   ["Policy Fellow", "policy"],
   ["Education Program Manager", "education"],
   ["Program Manager, Data Centers", "operations"],
+
+  // ---- 2026-08-23: the three clusters that were sitting in "other" ----
+  // Figure AI factory floor → the new Manufacturing category.
+  ["Humanoid Robot Operator (Night Shift)", "manufacturing"],
+  ["Humanoid Robot Pilot", "manufacturing"],
+  ["Robot Service Technician (Morning Shift)", "manufacturing"],
+  ["Apprentice Robot Service Technician", "manufacturing"],
+  ["CNC Machinist", "manufacturing"],
+  ["Gear Machinist", "manufacturing"],
+  ["Fabricator", "manufacturing"],
+  ["Production Associate", "manufacturing"],
+  ["Manufacturing Equipment Technician", "manufacturing"],
+  ["Remanufacturing Technician (Swing Shift)", "manufacturing"],
+  ["Staging Specialist", "manufacturing"],
+  ["Field Service Technician - Commercial Site Team", "manufacturing"],
+  ["Global Supply Manager, Battery", "manufacturing"],
+  ["Global Supply Manager - PCBA", "manufacturing"],
+  ["Material Planning Manager, Electronics", "manufacturing"],
+  ["Demand Planner", "manufacturing"],
+  ["Logistics & Dispatch Coordinator", "manufacturing"],
+  ["Deployment Logistics Lead", "manufacturing"],
+  ["Helix Data Creator", "manufacturing"],
+  ["Technical Coordinator, Data Creators (SP)", "manufacturing"],
+  ["Site Lead - Commercial Site Team", "manufacturing"],
+
+  // THE BOUNDARY: designing robots is Engineering, not Manufacturing.
+  // "robotics engineer" (17) must beat "robot technician" and friends.
+  ["Robotics Engineer", "engineering"],
+  ["Senior Robotics Engineer, Manipulation", "engineering"],
+  // And a data-centre site role must stay Infrastructure, not Manufacturing.
+  ["Site Lead, Data Center Operations", "infrastructure"],
+  // These four are the false positives the 4,251-title sweep caught. An
+  // engineering site lead and a manufacturing ENGINEER are engineers; a
+  // security investigation that merely mentions manufacturing is neither.
+  ["Engineering Site Lead", "engineering"],
+  ["Manufacturing Test Engineer", "engineering"],
+  ["Product Manufacturing Engineer - PCBA", "engineering"],
+  ["Manufacturing Software Test Engineer", "engineering"],
+  ["Secure Manufacturing & Stealth Investigator", "no-match"],
+
+  // Sierra's forward-deployed role.
+  ["Strategist, Agent Development", "solutions"],
+  ["Strategist, Agent Development (Brazilian Portuguese speaking)", "solutions"],
+  ["Strategist, Agent Development - Financial Services", "solutions"],
+  ["Event Marketer", "marketing"],
+
+  // Harvey's IT / HR / programme cluster.
+  ["Sr. Workday Integrations Analyst", "infrastructure"],
+  ["People Business Partner", "people"],
+  ["Employee Experience Specialist", "people"],
+  // …but a PM who builds employee-experience software is still Product.
+  ["Sr Product Manager, Employee Experience", "product"],
+  ["Global Benefits and Leaves Analyst, EMEA", "people"],
+  ["People Lead (CDMX)", "people"],
+  ["Practice Lead, Law Firm Transformation", "solutions"],
+  ["Practice Lead, In-house Transformation", "solutions"],
+  ["Partner Program Lead", "sales"],
+  ["Competitive Intelligence Lead", "marketing"],
+  ["Head of Customer Learning", "customer-success"],
+  ["Law School Manager, International", "education"],
+  ["Law School Student Ambassador", "education"],
+  ["Strategy Associate", "operations"],
+
+  // ---- 2026-08-23, round 2: the four clusters the audit surfaced ----
+  // Harvey's Legal Engineers are lawyers, not software engineers.
+  ["Legal Engineer", "legal-compliance"],
+  ["Legal Engineer (In-House)", "legal-compliance"],
+  ["Legal Engineering Manager (Law Firm, Corporate)", "legal-compliance"],
+  ["Head of Legal Engineering, Product Specialists - EMEA", "legal-compliance"],
+  ["Legal Engineering Program Manager", "legal-compliance"],
+  ["Legal Engineer (Law Firm, Litigation/Regulatory)", "legal-compliance"],
+  // …but an ordinary software engineer is untouched by that rule.
+  ["Senior Software Engineer, Platform", "engineering"],
+
+  // Forward-deployed roles must stay one family, whatever noun follows.
+  ["Applied AI, Forward Deployed Machine Learning Engineer", "solutions"],
+  ["Forward Deployed Infrastructure Engineer (Spanish speaking)", "solutions"],
+  ["Senior Full-Stack Software Engineer, (Forward Deployed), GPS", "solutions"],
+  ["Member of Technical Staff (Forward Deployed Engineer, Applied AI)", "solutions"],
+  ["Director of Product Management, Forward Deployed & Strategic", "solutions"],
+
+  // Recruiting is People, whatever the surrounding noun.
+  ["Recruiting Operations Manager", "people"],
+  ["Technical Program Manager, Recruiting Technology", "people"],
+  ["Senior University Recruiting Program Manager", "people"],
+  ["Senior Systems Analyst, Recruiting Operations", "people"],
+  ["Recruiting Solutions Engineer", "people"],
+  ["People Research Scientist, Recruiting", "people"],
+
+  // Accountants are Finance, even inside a data centre.
+  ["Manager, Data Center Operations Accounting", "finance"],
+  ["Director, Operations Accounting - Supply Chain", "finance"],
+  ["Operations Accounting - Inventory Manager", "finance"],
+  ["Finance Systems Engineer, Tax", "finance"],
+
+  // A counsel is legal whatever the domain word next to it.
+  ["Counsel, Global Supply Chain", "legal-compliance"],
+  ["Senior Counsel, Capital Markets", "legal-compliance"],
+
+  // Perplexity's "Member of X Staff (specialism)" families stay together.
+  ["Member of Data Staff (AI Builder)", "data"],
+  ["Member of Data Staff (Analytics Engineer)", "data"],
+  ["Member of Creative Studio (Producer, Brand & Creative)", "design"],
+  ["Member of Creative Studio (Web Designer - Marketing & Landing Pages)", "design"],
 ];
 
 let pass = 0, fail = 0;

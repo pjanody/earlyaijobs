@@ -31,7 +31,8 @@ const CATEGORY_LABELS = {
   solutions: "Solutions", sales: "Sales", marketing: "Marketing",
   "customer-success": "Customer Success", operations: "Operations",
   "legal-compliance": "Legal & Compliance", policy: "Policy", people: "People",
-  finance: "Finance", education: "Education", other: "Other",
+  finance: "Finance", education: "Education", manufacturing: "Manufacturing",
+  other: "Other",
 };
 
 function timeAgo(dateString) {

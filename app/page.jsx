@@ -6,6 +6,7 @@ import {
   COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, POSTED_WINDOWS,
   displayLocation, validSince, timeAgo, freshness,
 } from "../lib/db";
+import { buildMetadata } from "../lib/seo";
 
 // Auto-submit the filter form when a control changes (falls back to the Apply
 // button with JavaScript off), and open the mobile filters drawer by default
@@ -20,6 +21,21 @@ const filterScript = `
 `;
 
 export const revalidate = 300;
+
+// Per-filter SEO metadata. The logic lives in lib/seo.js so it can be unit
+// tested without a database or a browser; this is just the wiring. See that
+// file for why it exists — in short, ~55 sitemap URLs were all serving the
+// same title, so search engines saw them as one page.
+export async function generateMetadata({ searchParams }) {
+  const sp = await searchParams;
+  return buildMetadata(sp, {
+    categories: CATEGORY_LABELS,
+    companies: COMPANY_LABELS,
+    countries: COUNTRY_LABELS,
+    regions: REGION_LABELS,
+    postedWindows: POSTED_WINDOWS,
+  });
+}
 
 function qs(params) {
   const clean = Object.fromEntries(

@@ -134,5 +134,61 @@ check("plain short sentences NOT promoted without colon or known title", () => {
   if (out.includes("<h2>")) throw new Error(`short sentence promoted: ${out}`);
 });
 
+// ---------------------------------------------------------------------------
+// ATS requisition codes (2026-08-23)
+//
+// Databricks opens every posting with <p><strong>CSQ227R215</strong></p>. The
+// short-bold-line rule promoted it to an <h2>, so the job page led with a
+// meaningless giant heading and that code headed the "ON THIS PAGE" nav.
+//
+// These are the ONLY tests in this file where output text may differ from
+// input, so they call promoteHeadings directly rather than promoFidelity.
+// The fidelity guarantee still holds for everything else — the tests below
+// prove prose containing code-like tokens is never touched.
+// ---------------------------------------------------------------------------
+const { isReferenceCode } = require("./description-format");
+
+check("Databricks requisition code is removed, not turned into a heading", () => {
+  const out = promoteHeadings("<p><strong>CSQ227R215</strong></p><p>As a Staff Designated Engineer you will…</p>");
+  if (out.includes("CSQ227R215")) throw new Error(`code survived: ${out}`);
+  if (out.includes("<h2>")) throw new Error(`code became a heading: ${out}`);
+  if (!out.includes("As a Staff Designated Engineer")) throw new Error(`body text lost: ${out}`);
+});
+
+check("code recognised in several ATS formats", () => {
+  for (const c of ["CSQ227R215", "CSQ327R31", "JR102938", "R-12345", "REQ4471"]) {
+    if (!isReferenceCode(c)) throw new Error(`not detected: ${c}`);
+  }
+  // Removed whether bold, plain, or already a heading.
+  for (const html of ["<p><strong>JR102938</strong></p>", "<p>JR102938</p>", "<h1>JR102938</h1>", "<h2>JR102938</h2>"]) {
+    if (promoteHeadings(html).includes("JR102938")) throw new Error(`survived: ${html}`);
+  }
+});
+
+check("REAL headings and prose are never mistaken for codes", () => {
+  for (const t of [
+    "Benefits", "EEO", "Compensation", "About Databricks", "Pay Range Transparency",
+    "What you'll do", "Requirements", "Level 3", "Tier 2 Support", "Q4",
+  ]) {
+    if (isReferenceCode(t)) throw new Error(`wrongly treated as a code: ${t}`);
+  }
+});
+
+check("a code with any other word beside it is left completely alone", () => {
+  // The rule only fires on a paragraph that is NOTHING BUT a code. Anything
+  // else — including a sentence that mentions one — keeps every character.
+  promoFidelity("<p>Requisition CSQ227R215</p>");
+  promoFidelity("<p><strong>Job ID: CSQ227R215</strong></p>");
+  promoFidelity("<p>Quote reference CSQ227R215 when applying.</p>");
+});
+
+check("known headings still promote after the code is stripped", () => {
+  const out = promoteHeadings(
+    "<p><strong>CSQ227R215</strong></p><p><strong>Pay Range Transparency</strong></p><p>Databricks is committed to fair pay.</p>"
+  );
+  if (out.includes("CSQ227R215")) throw new Error(`code survived: ${out}`);
+  if (!out.includes("<h2>Pay Range Transparency</h2>")) throw new Error(`heading lost: ${out}`);
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

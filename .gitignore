@@ -10,3 +10,8 @@ backfill-v1-snapshot-*.json
 
 # macOS folder metadata
 .DS_Store
+
+# editor swap files (a stray app/.page.jsx.swp was committed once)
+*.swp
+*.swo
+*~
