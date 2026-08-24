@@ -198,6 +198,23 @@ check("site identity: exactly one WebSite and one Organization node", () => {
   assert(!nodes[1].sameAs, "no fake social profiles");
 });
 
+// ---------------- description alignment ----------------
+check("requisition code stripped from the schema description too", () => {
+  // The visible page removes <p><strong>RDQ427R146</strong></p>; the schema
+  // must describe the same content a visitor sees.
+  const j = buildJobPosting({
+    ...baseJob,
+    description_html: "<p>RDQ427R146</p><p>Build the platform for AI apps.</p>",
+  }, OPTS);
+  assert(!j.description.includes("RDQ427R146"), "code removed");
+  assert(j.description.includes("Build the platform"), "content kept");
+});
+
+check("plain-text descriptions pass through untouched", () => {
+  const j = buildJobPosting({ ...baseJob, description_html: null, description: "Plain text role." }, OPTS);
+  eq(j.description, "Plain text role.", "unchanged");
+});
+
 // ---------------- output hygiene ----------------
 check("entity JSON-serialises without undefined leaking as null", () => {
   const j = buildJobPosting(baseJob, OPTS);
