@@ -76,10 +76,23 @@ export async function generateMetadata({ params }) {
   const job = await getJob(id);
   if (!job) return { title: "Job not found — EarlyAIJobs" };
   const company = COMPANY_LABELS[job.company_name] || job.company_name;
+  const title = `${job.title} at ${company} — EarlyAIJobs`;
+  const description = `${job.title} at ${company}${job.location ? ` · ${displayLocation(job.location, 3)}` : ""}. Apply directly on the company's careers page.`;
   return {
-    title: `${job.title} at ${company} — EarlyAIJobs`,
-    description: `${job.title} at ${company}${job.location ? ` · ${displayLocation(job.location, 3)}` : ""}. Apply directly on the company's careers page.`,
+    title,
+    description,
     alternates: { canonical: `https://www.earlyaijobs.com/job/${job.id}` },
+    // Share metadata must describe THIS job. Without an explicit openGraph
+    // block these pages inherited the layout's site-generic og:title, so a
+    // shared job link previewed as "EarlyAIJobs — fresh jobs..." instead of
+    // the role. The og:image itself comes from opengraph-image.jsx beside
+    // this file — Next wires it automatically.
+    openGraph: {
+      title, description,
+      url: `https://www.earlyaijobs.com/job/${job.id}`,
+      siteName: "EarlyAIJobs", type: "article",
+    },
+    twitter: { card: "summary_large_image", title, description },
     // Closed jobs stay readable (the page shows a "role has closed" state and
     // similar-role links) but leave the index: they exit the sitemap at once,
     // yet Google keeps indexed URLs for weeks, and searchers landing on dead
