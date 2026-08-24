@@ -15,7 +15,7 @@ let mod;
 mod = await import("./lib/seo.js");
 const {
   readFilters, buildTitle, buildDescription, buildCanonical, isNoindex,
-  buildMetadata, buildHeading, buildSubheading,
+  buildMetadata, buildHeading, buildSubheading, buildCategoryMetadata, categoryPath,
 } = mod;
 
 // Trimmed stand-ins for the real label maps in lib/db.js. Using fakes keeps
@@ -118,8 +118,10 @@ check("canonical uses a fixed parameter order", () => {
 });
 
 check("canonical drops non-indexable parameters", () => {
+  // q/since/posted are noindexed noise; with them stripped this is a pure
+  // category view, so it canonicalises all the way to the category ROUTE.
   const c = buildCanonical(f({ category: "sales", q: "python", since: "2026-08-01T00:00:00Z", posted: "7" }));
-  eq(c, "https://www.earlyaijobs.com/?category=sales", "q, since and posted excluded");
+  eq(c, "https://www.earlyaijobs.com/jobs/sales", "noise stripped, route canonical");
 });
 
 check("homepage canonical is /", () => {
@@ -132,6 +134,50 @@ check("paginated view is self-canonical and labelled", () => {
     "AI Engineering Jobs — Page 3 | EarlyAIJobs", "page in title");
   eq(buildTitle(f({ page: "2" }), LABELS),
     "EarlyAIJobs — fresh jobs from leading AI companies — Page 2", "page on the homepage title");
+});
+
+// ---------------- category routes (Batch C) ----------------
+check("PURE category view canonicalises to its /jobs route", () => {
+  eq(buildCanonical(f({ category: "engineering" })),
+    "https://www.earlyaijobs.com/jobs/engineering", "route canonical");
+  eq(categoryPath("research"), "/jobs/research", "path helper");
+});
+
+check("combined filters do NOT canonicalise to the route (user-intent views)", () => {
+  eq(buildCanonical(f({ category: "engineering", company: "openai" })),
+    "https://www.earlyaijobs.com/?category=engineering&company=openai", "with company");
+  eq(buildCanonical(f({ category: "engineering", remote: "1" })),
+    "https://www.earlyaijobs.com/?category=engineering&remote=1", "with remote");
+  eq(buildCanonical(f({ category: "engineering", country: "CA" })),
+    "https://www.earlyaijobs.com/?category=engineering&country=CA", "with country");
+  eq(buildCanonical(f({ category: "engineering", page: "2" })),
+    "https://www.earlyaijobs.com/?category=engineering&page=2", "page 2 self-canonical");
+});
+
+check("category route metadata: complete, self-canonical, indexable", () => {
+  const m = buildCategoryMetadata("engineering", LABELS, { intro: "Engineering is the largest category. More detail here." });
+  eq(m.title, "AI Engineering Jobs | EarlyAIJobs", "title");
+  eq(m.alternates.canonical, "https://www.earlyaijobs.com/jobs/engineering", "canonical");
+  eq(m.robots.index, true, "indexable");
+  eq(m.openGraph.url, m.alternates.canonical, "og url");
+  assert(m.description.startsWith("Engineering is the largest category."), "intro first sentence used");
+  assert(m.description.includes("updated hourly"), "site promise appended");
+});
+
+check("category route metadata falls back cleanly without an intro", () => {
+  const m = buildCategoryMetadata("sales", LABELS, {});
+  assert(m.description.length > 40, "generic description used");
+});
+
+check("unknown category slug → null (route 404s, never renders)", () => {
+  eq(buildCategoryMetadata("not-real", LABELS, {}), null, "unknown");
+  eq(buildCategoryMetadata("<script>", LABELS, {}), null, "injection attempt");
+});
+
+check("route title equals the query-view title (one subject, two addresses)", () => {
+  for (const c of Object.keys(LABELS.categories)) {
+    eq(buildCategoryMetadata(c, LABELS, {}).title, buildTitle(f({ category: c }), LABELS), c);
+  }
 });
 
 // ---------------- indexability ----------------

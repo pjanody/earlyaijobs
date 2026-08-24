@@ -139,7 +139,7 @@ export default async function JobPage({ params }) {
         {job.category && (
           <>
             <span className="sep">/</span>
-            <a href={`/?category=${job.category}`}>{CATEGORY_LABELS[job.category] || job.category}</a>
+            <a href={`/jobs/${job.category}`}>{CATEGORY_LABELS[job.category] || job.category}</a>
           </>
         )}
         <span className="sep">/</span>
@@ -178,7 +178,7 @@ export default async function JobPage({ params }) {
                 It was removed from {company}&apos;s job feed
                 {job.last_seen_at ? ` around ${new Date(job.last_seen_at).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}` : ""}.
                 Browse <a href="/">current openings</a>
-                {job.category ? <> or see other <a href={`/?category=${job.category}`}>{(CATEGORY_LABELS[job.category] || job.category).toLowerCase()} roles</a></> : null}.
+                {job.category ? <> or see other <a href={`/jobs/${job.category}`}>{(CATEGORY_LABELS[job.category] || job.category).toLowerCase()} roles</a></> : null}.
               </div>
             </div>
           ) : (

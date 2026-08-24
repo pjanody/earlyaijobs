@@ -36,11 +36,12 @@ export default async function sitemap() {
     { url: `${BASE}/companies`, changeFrequency: "daily", priority: 0.9 },
   ];
 
-  // Filter views — these are the pages that rank for "remote ai jobs",
-  // "ai engineering jobs", "openai jobs" and similar searches.
+  // Category pages — real routes since Batch C (2026-08-24). These replaced
+  // the /?category= query URLs in this sitemap; those still work but
+  // canonicalise here, so advertising both would be advertising duplicates.
   for (const slug of Object.keys(CATEGORY_LABELS)) {
     entries.push({
-      url: `${BASE}/?category=${slug}`,
+      url: `${BASE}/jobs/${slug}`,
       changeFrequency: "daily",
       priority: 0.8,
     });

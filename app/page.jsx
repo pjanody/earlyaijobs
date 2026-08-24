@@ -324,6 +324,24 @@ export default async function Home({ searchParams }) {
             );
           })}
 
+          {/* Crawlable path to every category page. The sidebar's category
+              control is a <select> — invisible to crawlers — and the footer
+              deliberately carries no nav (Patrick's call), so this block is
+              how /jobs/* pages are discovered from the homepage. Rendered on
+              the unfiltered view only; filtered views are for narrowing. */}
+          {!hasFilters && sortedCats.length > 0 && (
+            <nav className="footer-nav" aria-label="Browse jobs by category" style={{ marginTop: 26 }}>
+              <h3>Browse by category</h3>
+              <div className="footer-nav-links">
+                {sortedCats.map(([slug, n]) => (
+                  <a key={slug} href={`/jobs/${slug}`}>
+                    {CATEGORY_LABELS[slug] || slug} ({n})
+                  </a>
+                ))}
+              </div>
+            </nav>
+          )}
+
           {lastPage > 1 && (
             <div className="pager">
               {page > 1 ? (
