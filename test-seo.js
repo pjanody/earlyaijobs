@@ -13,7 +13,10 @@
 let mod;
 (async () => {
 mod = await import("./lib/seo.js");
-const { readFilters, buildTitle, buildDescription, buildCanonical, isNoindex, buildMetadata } = mod;
+const {
+  readFilters, buildTitle, buildDescription, buildCanonical, isNoindex,
+  buildMetadata, buildHeading, buildSubheading,
+} = mod;
 
 // Trimmed stand-ins for the real label maps in lib/db.js. Using fakes keeps
 // this test independent of the database module.
@@ -193,6 +196,42 @@ check("every sitemap URL also has a unique canonical", () => {
     assert(!seen.has(c), `duplicate canonical ${c}`);
     seen.add(c);
   }
+});
+
+// ---------------- visible heading agrees with the title ----------------
+check("h1 matches the title's subject on every indexable view", () => {
+  const views = [{ category: "engineering" }, { company: "openai" }, { remote: "1" },
+    { country: "CA" }, { category: "engineering", company: "openai" }];
+  for (const sp of views) {
+    const fl = f(sp);
+    const title = buildTitle(fl, LABELS).replace(/ \| EarlyAIJobs$/, "");
+    eq(buildHeading(fl, LABELS), title, `heading for ${JSON.stringify(sp)}`);
+  }
+});
+
+check("homepage h1 keeps its original sentence", () => {
+  eq(buildHeading(f({}), LABELS), "Fresh jobs from leading AI companies.", "root");
+});
+
+check("page number never leaks into the h1", () => {
+  eq(buildHeading(f({ category: "engineering", page: "3" }), LABELS),
+    "AI Engineering Jobs", "no page suffix");
+});
+
+check("subheading states the live count and scope", () => {
+  eq(buildSubheading(f({ category: "engineering" }), LABELS, 1017),
+    "1,017 engineering roles across leading AI companies, sourced directly from company career feeds.", "category");
+  eq(buildSubheading(f({ company: "openai" }), LABELS, 750),
+    "750 open roles at OpenAI, sourced directly from company career feeds.", "company");
+  eq(buildSubheading(f({ remote: "1" }), LABELS, 3),
+    "3 remote open roles across leading AI companies, sourced directly from company career feeds.", "remote");
+  eq(buildSubheading(f({ category: "sales" }), LABELS, 1),
+    "1 sales role across leading AI companies, sourced directly from company career feeds.", "singular");
+});
+
+check("subheading refuses bad counts", () => {
+  eq(buildSubheading(f({ category: "sales" }), LABELS, NaN), null, "NaN");
+  eq(buildSubheading(f({ category: "sales" }), LABELS, -5), null, "negative");
 });
 
 check("buildMetadata returns a complete, consistent object", () => {

@@ -6,7 +6,7 @@ import {
   COMPANY_LOGOS, WIDE_LOGOS, COUNTRY_LABELS, REGION_LABELS, POSTED_WINDOWS,
   displayLocation, validSince, timeAgo, freshness,
 } from "../lib/db";
-import { buildMetadata } from "../lib/seo";
+import { buildMetadata, buildHeading, buildSubheading, readFilters } from "../lib/seo";
 
 // Auto-submit the filter form when a control changes (falls back to the Apply
 // button with JavaScript off), and open the mobile filters drawer by default
@@ -92,14 +92,39 @@ export default async function Home({ searchParams }) {
     q && { label: `“${q}”`, href: qs({ category, company, remote, country, posted, since }) },
   ].filter(Boolean);
 
+  // The <h1> must describe the same subject as the <title> generated in
+  // generateMetadata — both derive from the same lib/seo.js filter object.
+  // On a filtered view the sub-line carries the live result count (already
+  // fetched for the results header; no extra query).
+  const seoLabels = {
+    categories: CATEGORY_LABELS, companies: COMPANY_LABELS,
+    countries: COUNTRY_LABELS, regions: REGION_LABELS, postedWindows: POSTED_WINDOWS,
+  };
+  const seoFilters = readFilters(sp, seoLabels);
+  const heading = buildHeading(seoFilters, seoLabels);
+  const isFiltered = heading !== "Fresh jobs from leading AI companies.";
+  const subheading = isFiltered ? buildSubheading(seoFilters, seoLabels, total) : null;
+
+  // Homepage-only structured data: the site's name and identity. One WebSite
+  // node, one Organization node, emitted nowhere else to avoid duplicates.
+  const identityLd = !hasFilters
+    ? [
+        { "@context": "https://schema.org", "@type": "WebSite", name: "EarlyAIJobs", alternateName: "earlyaijobs.com", url: "https://www.earlyaijobs.com/" },
+        { "@context": "https://schema.org", "@type": "Organization", name: "EarlyAIJobs", url: "https://www.earlyaijobs.com/", logo: "https://www.earlyaijobs.com/icon" },
+      ]
+    : null;
+
   return (
     <>
+      {identityLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(identityLd) }} />
+      )}
       <section className="hero">
         <div className="wrap">
-          <h1>Fresh jobs from leading AI companies.</h1>
+          <h1>{heading}</h1>
           <p>
-            Every role — engineering, research, sales, finance, operations and
-            more — sourced directly from company career feeds.
+            {subheading ||
+              "Every role — engineering, research, sales, finance, operations and more — sourced directly from company career feeds."}
           </p>
 
           <div className="stats">

@@ -5,6 +5,7 @@ import {
 } from "../../../lib/db";
 import { notFound } from "next/navigation";
 import SaveButton from "../../save-button";
+import { buildJobPosting, buildBreadcrumbs } from "../../../lib/job-schema";
 
 export const revalidate = 600;
 
@@ -79,6 +80,12 @@ export async function generateMetadata({ params }) {
     title: `${job.title} at ${company} — EarlyAIJobs`,
     description: `${job.title} at ${company}${job.location ? ` · ${displayLocation(job.location, 3)}` : ""}. Apply directly on the company's careers page.`,
     alternates: { canonical: `https://www.earlyaijobs.com/job/${job.id}` },
+    // Closed jobs stay readable (the page shows a "role has closed" state and
+    // similar-role links) but leave the index: they exit the sitemap at once,
+    // yet Google keeps indexed URLs for weeks, and searchers landing on dead
+    // postings are soft-404 signals against the whole domain. The row itself
+    // is deleted after 7 days, after which this URL 404s for real.
+    ...(job.is_open === false ? { robots: { index: false, follow: true } } : {}),
   };
 }
 
@@ -96,24 +103,18 @@ export default async function JobPage({ params }) {
   const pageUrl = `https://www.earlyaijobs.com/job/${job.id}`;
   const shareText = `${job.title} at ${company}`;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "JobPosting",
-    title: job.title,
-    description: job.description_html || job.description || `${job.title} at ${company}.`,
-    datePosted: job.first_published || job.first_seen_at,
-    employmentType:
-      job.employment_type && job.employment_type !== "unknown"
-        ? job.employment_type.toUpperCase().replace("-", "_")
-        : undefined,
-    hiringOrganization: { "@type": "Organization", name: company },
-    jobLocation: job.location
-      ? { "@type": "Place", address: { "@type": "PostalAddress", addressLocality: job.location } }
-      : undefined,
-    jobLocationType: job.is_remote === true ? "TELECOMMUTE" : undefined,
-    directApply: false,
-    url: pageUrl,
+  // Structured data comes from lib/job-schema.js (unit-tested, no fabricated
+  // fields — see that file's header for the rules). buildJobPosting returns
+  // null for closed jobs and for jobs with no defensible location signal.
+  const schemaOpts = {
+    companyLabels: COMPANY_LABELS,
+    companyWebsites: COMPANY_WEBSITES,
+    companyLogos: COMPANY_LOGOS,
+    categoryLabels: CATEGORY_LABELS,
+    baseUrl: "https://www.earlyaijobs.com",
   };
+  const jsonLd = buildJobPosting(job, schemaOpts);
+  const breadcrumbLd = buildBreadcrumbs(job, schemaOpts);
 
   // Feed-supplied URLs are untrusted: only known ATS/company hosts become an
   // Apply link. If a URL ever fails validation we send people to the company's
@@ -128,9 +129,10 @@ export default async function JobPage({ params }) {
 
   return (
     <div className="wrap detail">
-      {!isClosed && (
+      {jsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       )}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       <nav className="crumbs" aria-label="Breadcrumb">
         <a href="/">← All jobs</a>
