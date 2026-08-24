@@ -114,20 +114,20 @@ check("canonical uses a fixed parameter order", () => {
   const a = buildCanonical(f({ company: "openai", category: "sales" }));
   const b = buildCanonical(f({ category: "sales", company: "openai" }));
   eq(a, b, "same view, same canonical");
-  eq(a, "/?category=sales&company=openai", "order");
+  eq(a, "https://www.earlyaijobs.com/?category=sales&company=openai", "order");
 });
 
 check("canonical drops non-indexable parameters", () => {
   const c = buildCanonical(f({ category: "sales", q: "python", since: "2026-08-01T00:00:00Z", posted: "7" }));
-  eq(c, "/?category=sales", "q, since and posted excluded");
+  eq(c, "https://www.earlyaijobs.com/?category=sales", "q, since and posted excluded");
 });
 
 check("homepage canonical is /", () => {
-  eq(buildCanonical(f({})), "/", "root");
+  eq(buildCanonical(f({})), "https://www.earlyaijobs.com/", "root");
 });
 
 check("paginated view is self-canonical and labelled", () => {
-  eq(buildCanonical(f({ category: "engineering", page: "3" })), "/?category=engineering&page=3", "page kept");
+  eq(buildCanonical(f({ category: "engineering", page: "3" })), "https://www.earlyaijobs.com/?category=engineering&page=3", "page kept");
   eq(buildTitle(f({ category: "engineering", page: "3" }), LABELS),
     "AI Engineering Jobs — Page 3 | EarlyAIJobs", "page in title");
   eq(buildTitle(f({ page: "2" }), LABELS),
@@ -237,7 +237,7 @@ check("subheading refuses bad counts", () => {
 check("buildMetadata returns a complete, consistent object", () => {
   const m = buildMetadata({ category: "engineering", company: "openai" }, LABELS);
   eq(m.title, "Engineering Jobs at OpenAI | EarlyAIJobs", "title");
-  eq(m.alternates.canonical, "/?category=engineering&company=openai", "canonical");
+  eq(m.alternates.canonical, "https://www.earlyaijobs.com/?category=engineering&company=openai", "canonical");
   eq(m.openGraph.title, m.title, "og title matches");
   eq(m.openGraph.url, m.alternates.canonical, "og url matches canonical");
   eq(m.robots.index, true, "indexable");
