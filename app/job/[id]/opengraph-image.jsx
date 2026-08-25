@@ -111,12 +111,12 @@ export default async function Image({ params }) {
         <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
           <div
             style={{
-              display: "flex", padding: "10px 26px", borderRadius: 999,
-              border: "3px solid #7fb069", color: "#9ccc84",
-              fontSize: 30, fontWeight: 700,
+              display: "flex", padding: "8px 20px", borderRadius: 999,
+              border: "2px solid #7fb069", color: "#9ccc84",
+              fontSize: 22, fontWeight: 600,
             }}
           >
-            www.earlyaijobs.com
+            earlyaijobs.com
           </div>
         </div>
       </div>
