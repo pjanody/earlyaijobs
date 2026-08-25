@@ -117,19 +117,29 @@ export default async function CompanyPage({ params }) {
             companies haven't been classified yet, an empty "Jobs by category"
             section reads as a broken feature rather than a pending one. */}
         {sortedCats.length > 0 && (
-          <>
-            <h3 style={{ fontSize: 14, margin: "0 0 10px" }}>Jobs by category</h3>
-            <div className="meta" style={{ flexWrap: "wrap", gap: 8 }}>
+          <section className="category-companies" aria-label={`Categories ${company} is hiring in`}>
+            <h2>Hiring in these categories</h2>
+            <div className="company-chips">
               {sortedCats.map(([cat, n]) => (
-                <a key={cat} className="tag" href={`/?company=${slug}&category=${cat}`}>
-                  {CATEGORY_LABELS[cat] || cat} {n}
+                <a key={cat} className="company-chip" style={{ padding: "6px 14px" }} href={`/?company=${slug}&category=${cat}`}>
+                  {CATEGORY_LABELS[cat] || cat} <span className="n">{n}</span>
                 </a>
               ))}
             </div>
-          </>
+          </section>
         )}
 
-        <h3 style={{ fontSize: 14, margin: "30px 0 4px" }}>Latest jobs</h3>
+        <div className="list-toolbar">
+          <span className="count">
+            {stats.total.toLocaleString()} open {stats.total === 1 ? "role" : "roles"} · newest first
+          </span>
+          <span className="toolbar-actions">
+            {stats.remote > 0 && (
+              <a className="toolbar-btn" href={`/?company=${slug}&remote=1`}>Remote only</a>
+            )}
+            <a className="toolbar-btn" href={`/?company=${slug}`}>Filter by category or location</a>
+          </span>
+        </div>
         {jobs.map((job) => {
           const when = timeAgo(job.first_published);
           const state = freshness(job.first_published);
