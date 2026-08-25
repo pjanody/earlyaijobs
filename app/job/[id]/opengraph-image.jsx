@@ -104,11 +104,11 @@ export default async function Image({ params }) {
           )}
         </div>
 
-        {/* Footer row */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", fontSize: 28, color: "#aeb9c6" }}>
-            Apply directly on the employer's site
-          </div>
+        {/* Footer: just the URL pill. An earlier draft added "Apply directly
+            on the employer's site" here — the trust message belongs on the
+            page, after the click; on the card it was grey noise competing
+            with the title. (Patrick's call, 2026-08-24.) */}
+        <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
           <div
             style={{
               display: "flex", padding: "10px 26px", borderRadius: 999,
